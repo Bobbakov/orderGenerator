@@ -25,6 +25,100 @@ Simulations can help regulators in testing under what condtions dangers might em
 How users can get started with the project
 Using the libary is simple. 
 
+First: Download "orderGenerator_module.py" and save it on your Python path
+Secondly: Import the libary. 
+
+from orderGenerator_module.py import *
+
+Lets start by creating a market:
+
+a = market()
+
+Adding no parameters initializes a market in which minimum price that can be paid = 1, maximum price = 100,
+ticksize = 0.05, minimal quantity of any order = 1, maximum quantity = 10).
+
+You can change of these parameters by puttem them in betwene brackets:
+minprice
+maxprice
+ticksize
+minquantity
+maxquantity
+
+By default, you will also add two agents: 
+random agent
+market maker
+
+the random agent sends in orders according to a logNormal distribution. Specifically: it checks the last price, and sends in order for lastPrice * lognormal(). The market maker always want to best bid and offer.
+
+You can also add your own agents:
+
+b = market()
+
+You do so by picking from the available strategies. At this point, they are:
+randomUniform
+randomNormal
+randomLogNormal
+marketMaker
+
+Add them to an array
+agents = ["randomLogNormal", "marketMaker", "marketMaker", "randomLogNormal"]
+b.addAgents(agents)
+
+
+Now you can start the market/have the various agents send in orders. 
+
+You do so by:
+
+b.orderGenerator()
+
+This functions loops through the agents (from left to right), and have each agent execute its strategy. Once finished, it will repeat. It will do so for (by default) 5000 times.
+
+You can adjust parameters 
+
+b.orderGenerator(n, cleart, sleeptime) wheere
+n = number of iterations
+clearAt = number of iterations after which orderbook gets cleared
+sleeptime = seconds between interations. Usefull to slowdown printing intermerdiate results.
+
+Once the loop is finished, we can see our results.
+
+a.summary()
+
+Shows four graphs:
+price over time
+volatility over time
+positions of each agent over time
+realized profit of each agent over time
+
+You can also just check the price by:
+a.plot()
+
+You can also see the orderbook by typing
+a.showOrderbook()
+
+Or (viusally) by typing
+
+a.showOrderbookH()
+
+Agents
+
+As described above, you can add agents yourself by picking from the set of available strategies.
+
+At this point in time, there are four strategies:
+randomUniform: 
+agent randomly chooses to send in Buy or Sell Order
+agent chooses randomly (from a uniform distribution) a price between minprice of market and maxprice market
+agent chooses randomly (from a uniform distribution) a quantity between minquantity of market and maxquantity market
+
+randomNormal: 
+agent randomly chooses to send in Buy or Sell Order
+agent chooses randomly from a normal distribution with mean = last price and standard deviation = 0.1
+agent chooses randomly (from a uniform distribution) a quantity between minquantity of market and maxquantity market
+
+randomLogNormal
+agent randomly chooses to send in Buy or Sell Order
+agent chooses randomly from a lognormal distribution with mean = 0 and standard deviation = 0.2. It multiplies this value with the last price traded. Value gets rounded to nearest multiple of ticksize.
+agent chooses randomly (from a uniform distribution) a quantity between minquantity of market and maxquantity market
 
 Where users can get help with your project
 Who maintains and contributes to the project
