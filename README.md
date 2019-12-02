@@ -1,14 +1,14 @@
 # orderGenerator
-##This library allows the user to easily simulate a financial market, add agents, and gerenate orders.
+## This library allows the user to easily simulate a financial market, add agents, and gerenate orders.
 
 
-##What the project does
+## What the project does
 This repositoy allows you to create a virtual market, add agents, and start the market. 
 Agents will send orders to the market (according to their strategy), which are send to a matching engine. 
 If an order matches and order of the opposite side, a trade will occur.
 
 
-##Why the project is useful
+## Why the project is useful
 This project can be usefull for two groups of people: trading firms and regulators. For the first, it can be used test algorithmic trading strategies.
 ALthough there is plenty of transaction data around to backtest strategies on, this doesn't provide an accurate picture of a market.
 In reality, your orders will have market-impact, directly matching other orders (hence changing the price) or cause other market participants to chagne their behaviour.
@@ -22,7 +22,7 @@ good results for the markets (i.e., decrease volatitliy, increase market depth, 
 
 Simulations can help regulators in testing under what condtions dangers might emerge, and how to mitigate them (for example: changing the proporitions of various trading strategies).
 
-##How users can get started with the project
+## How users can get started with the project
 Using the libary is simple. 
 
 First: Download "orderGenerator_module.py" and save it on your Python path
@@ -31,7 +31,7 @@ Secondly: Import the libary.
 from orderGenerator_module.py import *
 
 Lets start by creating a market:
-###Market
+### Market
 
 a = market()
 
@@ -100,7 +100,7 @@ Or (viusally) by typing
 
 a.showOrderbookH()
 
-###Agents
+### Agents
 
 First intialize an agent:
 
@@ -149,13 +149,13 @@ agent1.randomNormal(a)
 agent1.marketMaker(a)
 ...
 
-###Orders
+### Orders
 If an agents sends in an order, the order will go through the matching engine. This follows the standard rules of a limit order book. Briefly: if the price of a bid order is higher than the price of best offer in the orderbook, there will be a transaction. If there is remaining quantity left (= agent didn't buy all units he wanted), the engine will check for the next lowest offer. If there is, there will be a transaction. This will go on untill either the buyer bought all units he wanted, or there are no offers matching the bid price. In case of the later, the reimaing bid will be send to the orderbook.
 
 The opposite goes for offers.
 
-###Transaction
+### Transaction
 If an order leads to a transaction, a transaciton will occur.
 
-#Where users can get help with your project
+## Where users can get help with your project
 You can contact me or commit changes yourself.
