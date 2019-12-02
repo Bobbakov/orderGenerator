@@ -90,6 +90,8 @@ Once the loop is finished, we can see our results.
 
 `a.summary()`
 
+![Test]("C:/Users/rgrau/Desktop/depthOrderbook.png")
+
 Shows four graphs:
 price over time
 volatility over time
