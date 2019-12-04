@@ -14,6 +14,7 @@ import seaborn as sns
 # SET DEFAULT FIGURE SIZE
 sns.set(rc={'figure.figsize':(30, 15)})
 
+import time
 ###############################################################################
 # FUNCTIONS FOR ORDER: CORRECT
 ###############################################################################
@@ -492,9 +493,8 @@ class market():
         
         # AUTOMATICALLY ADD preset_agents TO MARKET
         if auto_init:
-            preset_agents = ["randomLogNormal", "marketMaker", "marketMaker", "marketMaker"]
+            preset_agents = ["randomLogNormal", "marketMaker"]
             self.addAgents(preset_agents)
-            self.orderGenerator(5000)
     
     def __str__(self):
         return "{}".format(self.id)    
@@ -509,7 +509,7 @@ class market():
                 self.agents.append((agent(str(a) + str(self.agent_counter[a])) , a))
   
     # ORDER GENERATOR
-    def orderGenerator(self, n = 5000, clearAt = 1000, sleeptime = 0):
+    def orderGenerator(self, n = 5000, clearAt = 10000, printOrderbook = False, sleeptime = 0):
         c = 1
         
         # FOR EACH ITERATION
@@ -527,19 +527,21 @@ class market():
                                 
             c+= 1
             
-            '''
             # CLEAR ORDERBOOK AT FIXED INTERVALS
             if (c%clearAt == 0):
                 self.clear()   
-            '''
             
-            '''
             # SLOW DOWN ORDER GENERATION    
-            if (c%10 == 0):
+            if printOrderbook:
+                print("Iteration {}".format(c))
+                
+                if self.id in transaction.historyRaw.keys():
+                    for x in transaction.historyRaw[self.id][-5:]:
+                        print("Trade {}: {} buys {} from {} for {}".format(x.id, x.buyOrder.agent.name, x.quantity, x.sellOrder.agent.name, x.price))
+                    
                 self.showOrderbook()
                 #self.plotPositions()
-                time.sleep(float(5))
-            '''
+                time.sleep(float(sleeptime))
             
     # EMPTY ORDERBOOK        
     def clear(self):
@@ -631,10 +633,13 @@ class market():
         widthOrderbook = len("0       Bert    Buy     33      5")
         print(widthOrderbook * 2 * "*")
         
-        for sellOrder in sorted(order.activeSellOrders[self.id], key = operator.attrgetter("price"), reverse = True):
-                print(widthOrderbook * "." + " " + str(sellOrder))
-        for buyOrder in sorted(order.activeBuyOrders[self.id], key = operator.attrgetter("price"), reverse = True):
-                print(str(buyOrder) + " " + widthOrderbook * ".")
+        if self.id in order.activeSellOrders.keys():
+            for sellOrder in sorted(order.activeSellOrders[self.id], key = operator.attrgetter("price"), reverse = True):
+                    print(widthOrderbook * "." + " " + str(sellOrder))
+        if self.id in order.activeBuyOrders.keys():
+            for buyOrder in sorted(order.activeBuyOrders[self.id], key = operator.attrgetter("price"), reverse = True):
+                    print(str(buyOrder) + " " + widthOrderbook * ".")
+                    
         print(widthOrderbook * 2 * "*")        
         print(" ")
         
