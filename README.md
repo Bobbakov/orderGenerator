@@ -92,7 +92,7 @@ Once the loop is finished, we can see our results.
 
 `a.summary()`
 
-![summary()](pictures/summary.png)
+![summary()](pictures/summary2.png)
 
 Shows four graphs:
 price over time
