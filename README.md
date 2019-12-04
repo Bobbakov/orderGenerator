@@ -1,31 +1,47 @@
 # orderGenerator
-## This library allows the user to easily simulate a financial market, add agents, and gerenate orders.
+## This library allows the user to create order-based financial markets, add agents, and evaluate the effects of combinations of agents on measures such as volatility, agents-profits and more.
 
 
 ## What the project does
-This repositoy allows you to create a virtual market, add agents, and start the market. 
-Agents will send orders to the market (according to their strategy), which are send to a matching engine. 
-If an order matches and order of the opposite side, a trade will occur.
+This library allows the user to create order-based financial markets, add agents, and evaluate the effects of combinations of agents on measures such as volatility, agents-profits and more.
+
+When a market is started, agents will send orders to the market (according to their strategy), which are in turn processing by a matching engine. If the order matches an order/orders of the opposite side, a transaction will occur. Otherwise, the order will be a added to the orderbook. 
+
+By initiating markets with different setups (different tick-sizes, for example) and different sets of agents (many/no market makers, many/few random agents, etc.) one can see the impact on price development, volatility, agents positions and profits. One can see - for example - that adding a market maker to the market, will decrease volatility. 
+
+![examplePriceDevelopment](pictures/examplePriceDevelopment.png)
+
+Adding a market maker with a position limit (= closes position when limit is reached), can lead to sudden price spike (I leave this on for you to investigate ;) ).
 
 
 ## Why the project is useful
-This project can be usefull for two groups of people: trading firms and regulators. For the first, it can be used test algorithmic trading strategies.
+This project can be usefull for at least three groups of people: trading firms, regulators and trading venues. 
+
+### Trading firms
+For the first, it can be used test algorithmic trading strategies.
+
 ALthough there is plenty of transaction data around to backtest strategies on, this doesn't provide an accurate picture of a market.
-In reality, your orders will have market-impact, directly matching other orders (hence changing the price) or cause other market participants to chagne their behaviour.
-In to incorporate this dynamic, a dynamic order generation system is necessary.
 
-Also, this could allows parties to test their strategies under a wide range of conditions. One can set the market (the ticksize, for example), and add various sets of agents.
-Hence one can test the results of one's trading strategy under various circumstances.
+In reality, your orders will have market-impact, directly matching other orders (hence changing the price) or cause other market participants to change their behaviour.
 
-Regulators can test the effects of various combinations of algorthimic strategies on the financial market. While two trading strategies might - when used without the other - have
-good results for the markets (i.e., decrease volatitliy, increase market depth, etc.), the combination of both might have unintentional (and negative) consequences.
+In order to deal with this issue, a dynamic order generation system is necessary.
+
+Also, this order simulator could allow parties to test their strategies under a wide range of conditions. One can set the market (the ticksize, for example), and add various sets of agents.
+
+Hence one can test the results of one's trading strategy under various circumstances, making sure it's robust.
+
+### Regulators
+Regulators can test the effects of various combinations of algorthimic strategies on the financial market. While two trading strategies might - one used without the other - have good results for the markets (i.e., decrease volatitliy, increase market depth, etc.), the combination of both might have unintentional (and negative) consequences.
 
 Simulations can help regulators in testing under what condtions dangers might emerge, and how to mitigate them (for example: changing the proporitions of various trading strategies).
+
+### Trading venues
+Trading venues can use simulations to test the effects of features of their market (tick size, for example) on variables of interest (number of transactions, for example). There might turn out to be conditions under which the market is not as stable as expected. What would for example happen with liquidity if we add a whole bunch trend following algorithms? And would they trigger agents with stop losses? And if so, what would be the net effect on the market? What are the worst case scenarious you have to prepare for?
 
 ## How users can get started with the project
 Using the libary is simple. 
 
-First: Download "orderGenerator_module.py" and save it on your Python path
+First: Download "orderGenerator_module.py" and save it on your Python path.
 
 Secondly: Import the libary. 
 
@@ -34,23 +50,21 @@ from orderGenerator_module.py import *
 ``` 
 
 Lets start by creating a market:
+
 ### Market
 
 `a = market()`
 
-Adding no parameters initializes a market in which minimum price that can be paid = 1, maximum price = 100,
-ticksize = 0.05, minimal quantity of any order = 1, maximum quantity = 10).
+Adding no parameters initializes a market with minimum allowed price = 1, maximum price = 100,
+ticksize = 0.05, minimal quantity of any order = 1 and maximum quantity = 10.
 
-You can change of these parameters by puttem them in betwene brackets:
-- minprice
-- maxprice
-- ticksize
-- minquantity
-- maxquantity
+You can change of these parameters by putting any of them between brackets:
+
+`a = market(minprice = 100, maxprice = 1000, ticksize = 1, minquantity = 10, maxquantity = 1000)`
 
 By default, you will also add two agents: 
-random agent
-market maker
+- random agent
+- market maker
 
 the random agent sends in orders according to a logNormal distribution. Specifically: it checks the last price, and sends in order for lastPrice * lognormal(). The market maker always want to best bid and offer.
 
