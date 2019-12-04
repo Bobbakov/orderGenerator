@@ -139,52 +139,37 @@ Or (viusally) by typing:
 
 In the near future you can make your own agents buy using simple sets of instrunctions. 
 
+In the near future you can also easily change the parameters to the agents strategies.
+
 For now, you can add agents yourself by picking from the set of available strategies.
 
 At this point in time, there are the following strategies:
 
 #### randomUniform: 
 Agent randomly chooses to send in Buy or Sell Order
-Agent chooses randomly (from a uniform distribution) a price between minprice of market and maxprice market
+Agent chooses randomly (from a **uniform distribution**) a price between minprice of market and maxprice market
 Agent chooses randomly (from a uniform distribution) a quantity between minquantity of market and maxquantity market
 
 #### randomNormal: 
 Agent randomly chooses to send in Buy or Sell Order
-Agent chooses randomly from a normal distribution with mean = last price and standard deviation = 0.1
+Agent chooses randomly from a **normal distribution** with mean = last price and standard deviation = 0.1
 Agent chooses randomly (from a uniform distribution) a quantity between minquantity of market and maxquantity market
 
-agent1.randomNormal(a)
-
 #### randomLogNormal
-agent randomly chooses to send in Buy or Sell Order
-agent chooses randomly from a lognormal distribution with mean = 0 and standard deviation = 0.2. It multiplies this value with the last price traded. Value gets rounded to nearest multiple of ticksize.
-agent chooses randomly (from a uniform distribution) a quantity between minquantity of market and maxquantity market
-
-agent1.randomLogNormal(a)
-
-Where users can get help with your project
-Who maintains and contributes to the project
+Agent randomly chooses to send in Buy or Sell Order
+Agent chooses randomly from a **lognormal distribution with mean = 0 and standard deviation = 0.2**. It multiplies this value with the last price traded. Value gets rounded to nearest multiple of ticksize.
+Agent chooses randomly (from a uniform distribution) a quantity between minquantity of market and maxquantity market
 
 #### marketMaker
-The market maker always check if he is best bid and best offer in orderbook. If he is not, he will improve best bid by 1 tick or best offer by 1 tick (or both). If he is best bid or best offer, he will do nothing. If there are no bids, he will send in a best bid at the lowest possible price. The oppostite goes for no offers.
+The market maker always checks if he is best bid and best offer in the orderbook. If he is not, he will improve best bid by 1 tick or best offer by 1 tick (or both). If he is best bid or best offer, he will do nothing. If there are no bids, he will send in a best bid at the lowest possible price. The oppostite goes for no offers.
 
-agent chooses randomly (from a uniform distribution) a quantity between minquantity of market and maxquantity market
+He will choose randomly (from a uniform distribution) a quantity between minquantity of market and maxquantity market
 
-You can set various parameters at the marketMaker:
-
-`agent1.marketMaker(a, stop, position_limit)`
+You can set various parameters at the marketMaker, such as position limits.
 
 The marketMaker might have a position limit, meaning: if his accumulated position exceeds its limit, it will close its entire position at market. Also, if his short position exceeds the position limit, he will buy back all shorts at market.
 
 If stop = True, position_limit = 250 by default. You can set the limit you want.
-
-You could even have an agent that changes between strategies
-
-```
-agent1.randomNormal(a)
-agent1.marketMaker(a)
-...
-```
 
 ### Orders
 If an agents sends in an order, the order will go through the matching engine. This follows the standard rules of a limit order book. Briefly: if the price of a bid order is higher than the price of best offer in the orderbook, there will be a transaction. If there is remaining quantity left (= agent didn't buy all units he wanted), the engine will check for the next lowest offer. If there is, there will be a transaction. This will go on untill either the buyer bought all units he wanted, or there are no offers matching the bid price. In case of the later, the reimaing bid will be send to the orderbook.
@@ -192,7 +177,7 @@ If an agents sends in an order, the order will go through the matching engine. T
 The opposite goes for offers.
 
 ### Transaction
-If an order leads to a transaction, a transaciton will occur.
+If an order matching an orde of the opposite site a transaciton will occur.
 
 ## Where users can get help with your project
-You can contact me or commit changes yourself.
+You can add strategies, or write the supporting functions that would allows users to create their own strategies. 
