@@ -591,7 +591,7 @@ class market():
         dfVolatility = df[["volatility", "volatilityTrend"]]
         
         # PLOT PRICE
-        fig, axs = plt.subplots(3, 2)
+        fig, axs = plt.subplots(2, 2)
         axs[0, 0].plot(dfPrice, label = "price")
         axs[0, 0].set_title("Price")
         axs[0, 0].legend()
