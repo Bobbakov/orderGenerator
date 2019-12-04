@@ -76,6 +76,8 @@ You do so by:
 
 `b.orderGenerator()`
 
+![showOrderbook()](pictures/showOrderBook.png)
+
 This functions loops through the agents (from left to right), and have each agent execute its strategy. Once finished, it will repeat. It will do so for (by default) 5000 times.
 
 You can adjust parameters 
@@ -90,7 +92,7 @@ Once the loop is finished, we can see our results.
 
 `a.summary()`
 
-![Test](pictures/depthOrderbook.png)
+![summary()](pictures/summary.png)
 
 Shows four graphs:
 price over time
@@ -102,13 +104,19 @@ You can also just check the price by:
 
 `a.plot()`
 
+![plot()](pictures/plot.png)
+
 You can also see the orderbook by typing:
 
 `a.showOrderbook()`
 
+![showOrderbook()](pictures/showOrderBook.png)
+
 Or (viusally) by typing
 
 `a.showOrderbookH()`
+
+![showOrderbookH()](pictures/depthOrderbook.png)
 
 ### Agents
 
