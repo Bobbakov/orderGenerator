@@ -12,7 +12,7 @@ import pandas as pd
 import seaborn as sns
 
 # SET DEFAULT FIGURE SIZE
-sns.set(rc={'figure.figsize':(30, 15)})
+sns.set(rc={'figure.figsize':(20, 10)})
 
 import time
 ###############################################################################
@@ -430,8 +430,7 @@ class agent():
     def bestBidOffer(self, market, stop = False, position_limit = 250):
         quantity = random.randint(market.minquantity, market.maxquantity)
         
-        if stop:
-            
+        if stop:    
             # IF POSITION IS INITIATED
             if market.id in self.position.keys():
                 # CORRECT FOR IF MARKET HASN'T STARTED YET
@@ -441,32 +440,40 @@ class agent():
                     order(market, self, "Buy", market.maxprice, abs(self.position[market.id]))  
                 
         # IF THERE ARE ACTIVCE BUY ORDERS --> IMPROVE BEST BID
-        if not not order.activeBuyOrders[market.id]:
-            buyOrders = sorted(order.activeBuyOrders[market.id], key = operator.attrgetter("price"), reverse = True)
-            bestBid = buyOrders[0]
-            
-            # If trader is not best bid --> improve best bid
-            if not bestBid.agent.name == self.name:
-                order(market, self, "Buy", bestBid.price + market.ticksize, quantity)    
+        if market.id in order.activeBuyOrders.keys(): # CHECK IF MARKET IS ACTIVE
+            if not not order.activeBuyOrders[market.id]:
+                buyOrders = sorted(order.activeBuyOrders[market.id], key = operator.attrgetter("price"), reverse = True)
+                bestBid = buyOrders[0]
+                
+                # If trader is not best bid --> improve best bid
+                if not bestBid.agent.name == self.name:
+                    order(market, self, "Buy", bestBid.price + market.ticksize, quantity)    
+                else:
+                    pass
+            # Else --> create best bid    
             else:
-                pass
-        # Else --> create best bid    
+                order(market, self, "Buy", market.minprice, quantity)
         else:
-            order(market, self, "Buy", market.minprice, quantity)
-         
-        # If there are active sell orders --> improve best offer
-        if not not order.activeSellOrders[market.id]:
-            sellOrders = sorted(order.activeSellOrders[market.id], key = operator.attrgetter("price"))
-            bestOffer = sellOrders[0]
-            
-            # If trader is not best offer --> improve best offer
-            if not bestOffer.agent.name == self.name:
-                order(market, self, "Sell", bestOffer.price - market.ticksize, quantity)    
+            # SEND IN RANDOM ORDER TO START THE MARKET
+            order(market, self, "Sell", market.maxprice, quantity)
+        
+        if market.id in order.activeSellOrders.keys():
+            # If there are active sell orders --> improve best offer
+            if not not order.activeSellOrders[market.id]:
+                sellOrders = sorted(order.activeSellOrders[market.id], key = operator.attrgetter("price"))
+                bestOffer = sellOrders[0]
+                
+                # If trader is not best offer --> improve best offer
+                if not bestOffer.agent.name == self.name:
+                    order(market, self, "Sell", bestOffer.price - market.ticksize, quantity)    
+                else:
+                    pass
+            # Else --> create best bid    
             else:
-                pass
-        # Else --> create best bid    
+                order(market, self, "Sell", market.maxprice, quantity) 
         else:
-            order(market, self, "Sell", market.maxprice, quantity) 
+            # SEND IN RANDOM ORDER TO START THE MARKET
+            order(market, self, "Sell", market.maxprice, quantity)
     
 ###############################################################################
 # MARKET: CORRECT
@@ -523,7 +530,7 @@ class market():
                 if s == "randomLogNormal":
                     a.randomLogNormal(self)
                 if s == "marketMaker":
-                    a.bestBidOffer(self, stop = False)     
+                    a.bestBidOffer(self)     
                                 
             c+= 1
             
