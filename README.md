@@ -62,21 +62,23 @@ You can change of these parameters by putting any of them between brackets:
 
 `a = market(minprice = 100, maxprice = 1000, ticksize = 1, minquantity = 10, maxquantity = 1000)`
 
-By default, you will also add two agents: 
-- random agent
+By default, you will also add two agents (more on this in section Agents): 
+- agent sending in orders according to random lognormal distribution
 - market maker
 
-the random agent sends in orders according to a logNormal distribution. Specifically: it checks the last price, and sends in order for lastPrice * lognormal(). The market maker always want to best bid and offer.
+You can also add your own agents.
 
-You can also add your own agents:
+First: cancel auto initialization
 
-`b = market()`
+`b = market(auto_init = False)`
 
-You do so by picking from the available strategies. At this point, they are:
+Now pick any combination of agents from the available strategies (see Agent section for specification strategies). At this point, they are:
 - randomUniform
 - randomNormal
 - randomLogNormal
 - marketMaker
+
+In time you will be able to make add totally self created strategies (you can already by changing the code, of course).
 
 Add them to an array
 ```
@@ -84,7 +86,7 @@ agents = ["randomLogNormal", "marketMaker", "marketMaker", "randomLogNormal"]
 b.addAgents(agents)
 ```
 
-Now you can start the market/have the various agents send in orders. 
+Now, having a market with agents, you can start the market/have the various agents send in orders. 
 
 You do so by:
 
@@ -94,13 +96,14 @@ You do so by:
 
 This functions loops through the agents (from left to right), and have each agent execute its strategy. Once finished, it will repeat. It will do so for (by default) 5000 times.
 
-You can adjust parameters 
+You can adjust parameters:
 
-`b.orderGenerator(n, cleart, sleeptime)`
+`b.orderGenerator(n = 100, clearAt = 10, printOrderbook = True, sleeptime = 5)`
 where 
-n = number of iterations
-clearAt = number of iterations after which orderbook gets cleared
-sleeptime = seconds between interations. Usefull to slowdown printing intermerdiate results.
+- n = number of iterations
+- clearAt = number of iterations after which orderbook gets emptied
+- printOrderbook = False by default. Set to true if you want to display intermediate orderbook.
+- sleeptime = seconds between interations. Useful to slowdown printing intermediate results.
 
 Once the loop is finished, we can see our results.
 
@@ -108,25 +111,25 @@ Once the loop is finished, we can see our results.
 
 ![summary()](pictures/summary2.png)
 
-Shows four graphs:
-price over time
-volatility over time
-positions of each agent over time
-realized profit of each agent over time
+This shows four graphs:
+- Price over time
+- Volatility over time
+- Positions of each agent over time
+- Realized profit of each agent over time
 
-You can also just check the price by:
+You can just check the price by:
 
 `a.plot()`
 
 ![plot()](pictures/plot.png)
 
-You can also see the orderbook by typing:
+You can see the orderbook by typing:
 
 `a.showOrderbook()`
 
 ![showOrderbook()](pictures/showOrderBook.png)
 
-Or (viusally) by typing
+Or (viusally) by typing:
 
 `a.showOrderbookH()`
 
@@ -134,22 +137,21 @@ Or (viusally) by typing
 
 ### Agents
 
-First intialize an agent:
+In the near future you can make your own agents buy using simple sets of instrunctions. 
 
-`agent1 = agent()`
+For now, you can add agents yourself by picking from the set of available strategies.
 
-As described above, you can add agents yourself by picking from the set of available strategies.
+At this point in time, there are the following strategies:
 
-At this point in time, there are four strategies:
 #### randomUniform: 
-agent randomly chooses to send in Buy or Sell Order
-agent chooses randomly (from a uniform distribution) a price between minprice of market and maxprice market
-agent chooses randomly (from a uniform distribution) a quantity between minquantity of market and maxquantity market
+Agent randomly chooses to send in Buy or Sell Order
+Agent chooses randomly (from a uniform distribution) a price between minprice of market and maxprice market
+Agent chooses randomly (from a uniform distribution) a quantity between minquantity of market and maxquantity market
 
 #### randomNormal: 
-agent randomly chooses to send in Buy or Sell Order
-agent chooses randomly from a normal distribution with mean = last price and standard deviation = 0.1
-agent chooses randomly (from a uniform distribution) a quantity between minquantity of market and maxquantity market
+Agent randomly chooses to send in Buy or Sell Order
+Agent chooses randomly from a normal distribution with mean = last price and standard deviation = 0.1
+Agent chooses randomly (from a uniform distribution) a quantity between minquantity of market and maxquantity market
 
 agent1.randomNormal(a)
 
