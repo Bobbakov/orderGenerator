@@ -1,6 +1,6 @@
-# orderGenerator
-## This library allows the user to create order-based financial markets, add agents, and evaluate the effects of combinations of agents on measures such as volatility, agents-profits and more.
-
+# Market simulation
+## This module allows you to do simulate financial markets. 
+## You can easily initiate order-based markets, add agents with various strategies, and evaluate the actions of agents on measures such as volatility, profits and more.
 
 ## What the project does
 This library allows the user to create order-based financial markets, add agents, and evaluate the effects of combinations of agents on measures such as volatility, agents-profits and more.
