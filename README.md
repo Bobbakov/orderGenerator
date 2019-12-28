@@ -2,13 +2,13 @@
 ## This module allows you to simulate financial markets. 
 ## You can easily initiate order-based markets, add agents with various strategies, and evaluate the actions of agents on measures such as volatility, profits and more.
 
-## Introdution
+## Introduction
 
 It all starts with initiating one or more markets, and adding agents to the market(s).
 
-When a market is started, agents will send orders to the market (according to their strategy), which are in turn processed by a matching engine. If the order matches an order/orders of the opposite side (e.g. a bid price exceeds a sell price), a transaction will occur. Otherwise, the order will be added to the orderbook. 
+When the orderGenerator is started, agents start sending orders to the market (according to their strategy), which are in turn processed by a matching engine. If the order matches an order/orders of the opposite side (e.g. a bid price exceeds a sell price), a transaction will occur. Otherwise, the order will be added to the orderbook. 
 
-By initiating markets with different setups (different ticksizes, for example) and different sets of agents (many/few random agents, many/no market makers, parties arbritrating between markets, etc.) one can evaluate the impact on price development, volatility, agents positions and profits. One can see - for example - that adding a market maker to a market, will decrease volatility:
+By initiating markets with different setups (different ticksizes, for example) and different agents (many/few random agents, many/no market makers, parties arbritrating between markets, etc.) one can evaluate the impact on price development, volatility, agents positions and profits. One can see - for example - that adding a market maker to a market, will decrease volatility:
 
 ![examplePriceDevelopment](pictures/examplePriceDevelopment.png)
 
@@ -20,13 +20,13 @@ This project can be useful for at least three groups of people: trading firms, r
 ### Trading firms
 For the first, it can be used to test algorithmic trading strategies.
 
-Although there is plenty of transaction data around to backtest strategies, this doesn't provide an accurate picture of any market.
+Although there is plenty of transaction data around to backtest strategies, transaction data by itself doesn't provide an accurate picture of any market.
 
 In reality, orders will have market-impact, directly matching other orders (hence changing the price) or cause other market participants to change their behaviour.
 
-In order to deal with this issue, a dynamic order generation system is necessary.
+In order to fully appreciate the effects of any trading strategy, one has to incorporate this interaction. A dynamic order generation system is one way to do so.
 
-Furthermore, the order simulator could allow parties to test their strategies under a wide range of conditions. One can set the market (the ticksize, for example), and test the results of strategies given various sets of agents.
+Furthermore, the market simulator can allow parties to test their strategies under a wide range of conditions. One can set the market (the ticksize, for example), and test the results of strategies given various sets of agents.
 
 One can also stress-test algorithms, making sure they don't have any negative side effects on the market, give any particular condition.
 
@@ -36,7 +36,7 @@ Regulators can test the effects of various combinations of algoritmic strategies
 Simulations can help regulators in testing under what condtions dangers might emerge, and how to mitigate them (for example: changing the proporitions of various trading strategies).
 
 ### Trading venues
-Trading venues can use simulations to test the effects of features of their market (ticksize, for example) on variables of interest (number of transactions, for example). There might turn out to be conditions under which the market is not as stable as expected. What would - for example - happen with liquidity if we add a whole bunch trend following algorithms? Would they trigger agents with stop losses? And if so, what would be the net effect on the market? What are the worst case scenarious you have to prepare for?
+Trading venues can use simulations to test the effects of features of their market (ticksize, number of agents, for example) on variables of interest (number of transactions, for example). There might turn out to be conditions under which the market is not as stable as expected. What would - for example - happen with liquidity if we add a whole bunch trend following algorithms? Would they trigger agents with stop losses? And if so, what would be the net effect on the market? What are the worst case scenarious you have to prepare for?
 
 Questions such as these could be investigated using this simulator.
 
