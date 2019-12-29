@@ -854,7 +854,7 @@ class market():
         print(widthOrderbook * 2 * "*")
         
         if self.id in order.activeSellOrders.keys():
-            for sellOrder in sorted(order.activeSellOrders[self.id], key = operator.attrgetter("price"), reverse = False)[:show_depth]:
+            for sellOrder in sorted(order.activeSellOrders[self.id], key = operator.attrgetter("price"), reverse = True)[:show_depth]:
                     print(widthOrderbook * "." + " " + str(sellOrder))
         if self.id in order.activeBuyOrders.keys():
             for buyOrder in sorted(order.activeBuyOrders[self.id], key = operator.attrgetter("price"), reverse = True)[:show_depth]:
