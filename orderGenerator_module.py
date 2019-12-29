@@ -643,7 +643,7 @@ class market():
         # agents = [a1, a2, a3, a4, a5]
         agents = [a1, a2]
         self.addAgents(agents)
-        self.orderGenerator(n, printOrderbook = True, sleeptime = 10)
+        self.orderGenerator(n, printOrderbook = False, sleeptime = 0)
    
     # Initiate a healthy or normal market     
     def healthy(self):
