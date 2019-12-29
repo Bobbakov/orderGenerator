@@ -568,7 +568,7 @@ class market():
         np.random.seed(100)
       
     # Start agents sending in orders to market(s)
-    def orderGenerator(self, n = 100, clearAt = 10000, printOrderbook = False, sleeptime = 0, all_markets = False):
+    def orderGenerator(self, n = 1000, clearAt = 10000, printOrderbook = False, sleeptime = 0, all_markets = False):
         c = 1
             
         # For each iteration
@@ -635,35 +635,55 @@ class market():
                     self.clear()  
                     
     def test(self, n = 1000):
-        a1 = agent("randomLogNormal", buy_probability = 0.7)
+        a1 = agent("randomLogNormal", buy_probability = 0.5)
+        a2 = agent("bestBidOffer")
+        # a3 = agent("randomLogNormal")
+        # a4 = agent("bestBidOffer")
+        # a5 = agent("bestBidOffer")
+        # agents = [a1, a2, a3, a4, a5]
+        agents = [a1, a2]
+        self.addAgents(agents)
+        self.orderGenerator(n, printOrderbook = True, sleeptime = 10)
+   
+    # Initiate a healthy or normal market     
+    def healthy(self):
+        a1 = agent("randomLogNormal", buy_probability = 0.50)
         a2 = agent("bestBidOffer")
         a3 = agent("randomLogNormal")
         a4 = agent("bestBidOffer")
         a5 = agent("bestBidOffer")
         agents = [a1, a2, a3, a4, a5]
         self.addAgents(agents)
-        self.orderGenerator(n, printOrderbook = False, sleeptime = 0)
    
-    # Initiate a healthy or normal market     
-    def healthy(self, n = 1000):
-        a1 = agent("randomLogNormal", buy_probability = 0.7)
-        a2 = agent("bestBidOffer", position_limit = 100)
+    # Initiate a stressed market (= high volatility)     
+    def stressed(self):
+        a1 = agent("randomLogNormal")
+        a2 = agent("randomLogNormal")
         a3 = agent("randomLogNormal")
-        a4 = agent("bestBidOffer", position_limit = 100)
-        a5 = agent("bestBidOffer", position_limit = 100)
+        a4 = agent("randomLogNormal")
+        a5 = agent("randomLogNormal")
         agents = [a1, a2, a3, a4, a5]
         self.addAgents(agents)
-        self.orderGenerator(n, printOrderbook = False, sleeptime = 0)
-        
-        # Initiate a healthy or normal market     
-    def twoPlayers(self, n = 1000):
-        agent("randomLogNormal", buy_probability = 0.55)
-        agent("bestBidOffer", position_limit = 100)
-        agents = agent.agents
-        self.addAgents(agents)
-        self.orderGenerator(n, printOrderbook = False, sleeptime = 0)
-    # Initialize a stressed market
     
+    # Initiate a trending (up) market   
+    def trendUp(self):
+        a1 = agent("randomLogNormal", buy_probability = 0.55)
+        a2 = agent("bestBidOffer")
+        a3 = agent("randomLogNormal")
+        a4 = agent("bestBidOffer")
+        a5 = agent("bestBidOffer")
+        agents = [a1, a2, a3, a4, a5]
+        self.addAgents(agents)
+        
+    # Initiate a trending (down) market     
+    def trendDown(self):
+        a1 = agent("randomLogNormal", buy_probability = 0.45)
+        a2 = agent("bestBidOffer")
+        a3 = agent("randomLogNormal")
+        a4 = agent("bestBidOffer")
+        a5 = agent("bestBidOffer")
+        agents = [a1, a2, a3, a4, a5]
+        self.addAgents(agents)
     
 ###############################################################################
 # MARKET: SUPPORTING FUNCTIONS
@@ -698,14 +718,14 @@ class market():
         if self.id in transaction.history.keys():
             for t in transaction.history[self.id][-number_transactions:]:
                 if t.id > lastTransactionId:
-                    print("--> Trade {}: {} buys from {} with price {} and quantity {}".format(t.id, t.buyOrder.agent.name, t.sellOrder.agent.name, t.price, t.quantity))
+                    print("--> Trade at price {} (quantity = {})".format(t.price, t.quantity))
                     # last_transaction_id = x.id
         
     def printOrderbook(self, lastTransactionId = -1):
         last_order = market.getLastOrder(self)
         
         # Print last order
-        print("Order {}: {} with price {} and quantity {}".format(last_order["id"], last_order["side"], last_order["price"], last_order["quantity"]))
+        print("Last order: \n{} with price {} (quantity = {})".format(last_order["side"], last_order["price"], last_order["quantity"]))
         
         # Print last transactions
         market.printLastTransactions(self, lastTransactionId)
