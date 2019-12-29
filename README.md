@@ -1,4 +1,4 @@
-# Market simulation
+# Market simulator
 ## This module allows you to simulate financial markets. 
 ## You can easily initiate order-based markets, add agents with various strategies, and evaluate the actions of agents on measures such as volatility, profits and more.
 
@@ -126,6 +126,18 @@ You can also just check the price by:
 `a.plotPrice()`
 
 ![plot()](pictures/plot.png)
+
+Positions over time by:
+
+`a.plotPositions()`
+
+![plotPositions()](pictures/plotPositions.png)
+
+(Realized) profits over time:
+
+`à.plotProfits()`
+
+![plotProfits()](pictures/plotProfits.png)
 
 You can see the orderbook by typing:
 
