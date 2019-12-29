@@ -8,7 +8,9 @@ It all starts with initiating one or more markets, and adding agents to the mark
 
 When the orderGenerator is started, agents start sending orders to the market (according to their strategy), which are in turn processed by a matching engine. If the order matches an order/orders of the opposite side (e.g. a bid price exceeds a sell price), a transaction will occur. Otherwise, the order will be added to the orderbook. 
 
-By initiating markets with different setups (different ticksizes, for example) and different agents (many/few random agents, many/no market makers, parties arbritrating between markets, etc.) one can evaluate the impact on price development, volatility, agents positions and profits. One can see - for example - that adding a market maker to a market, will decrease volatility:
+By initiating markets with different setups (different ticksizes, for example) and different agents (many/few random agents, many/no market makers, parties arbritrating between markets, etc.) one can evaluate the impact on market quality (=price development, volatility, etc.) and agents positions and profits. 
+
+One can see - for example - that adding a market maker to a market, will decrease volatility:
 
 ![examplePriceDevelopment](pictures/examplePriceDevelopment.png)
 
