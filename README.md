@@ -14,7 +14,13 @@ One can see - for example - that adding a market maker to a market, will decreas
 
 ![examplePriceDevelopment](pictures/examplePriceDevelopment.png)
 
-Adding a market maker with a position limit (= closes position when limit is reached), can lead to sudden price spikes (I leave this one for you to investigate ;) ).
+Adding a market maker with a position limit (= closes position when limit is reached), can lead to sudden price spikes. 
+
+Compare the price development in green (= market makers with position limits) to the one in blue (without positions limits):
+
+![marketMakerWithPositionLimits](pictures/marketMakerWithPositionLimits.png)
+
+The difference between prices appears to increase when price trends goes up. If leave this one for you to investigate ;).
 
 ## Why the project is useful
 This project can be useful for at least three groups of people: trading firms, regulators and trading venues. 
