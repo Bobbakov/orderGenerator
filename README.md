@@ -16,11 +16,11 @@ One can see - for example - that adding a market maker to a market, will decreas
 
 Adding a market maker with a position limit (= closes position when limit is reached), can lead to sudden price spikes. 
 
-Compare the price development in green (= market makers with position limits) to the one in blue (without positions limits):
+Compare the price development one the green market (which includes market makers with position limits) to the one in blue (without positions limits):
 
 ![marketMakerWithPositionLimits](pictures/marketMakerWithPositionLimits.png)
 
-The difference between prices appears to increase when price trends goes up. If leave this one for you to investigate ;).
+The difference between price developments appears to increase whenever the price is more trending. If leave this one for you to investigate ;).
 
 ## Why the project is useful
 This project can be useful for at least three groups of people: trading firms, regulators and trading venues. 
@@ -32,19 +32,19 @@ Although there is plenty of transaction data around to backtest strategies, tran
 
 In reality, orders will have market-impact, directly matching other orders (hence changing the price) or cause other market participants to change their behaviour.
 
-In order to fully appreciate the effects of any trading strategy, one has to incorporate this interaction. A dynamic order generation system is one way to do so.
+In order to fully appreciate the effects of any trading strategy, one has to take into account this feedback. A dynamic order generation system is one way to do so.
 
 Furthermore, the market simulator can allow parties to test their strategies under a wide range of conditions. One can set the market (the ticksize, for example), and test the results of strategies given various sets of agents.
 
 One can also stress-test algorithms, making sure they don't have any negative side effects on the market, give any particular condition.
 
 ### Regulators
-Regulators can test the effects of various combinations of algoritmic strategies on the financial markets. While two trading strategies might - one used without the other - have good results for the markets (i.e., decrease volatitliy, increase market depth, etc.), the combination of both might have unintentional (and negative) consequences.
+Regulators can test the effects of various combinations of algoritmic strategies on the financial markets. While two trading strategies might - one used without the other - have "good" results for the markets (i.e., decrease volatitliy, increase market depth, etc.), the combination of both might have unintentional (and negative) consequences.
 
 Simulations can help regulators in testing under what condtions dangers might emerge, and how to mitigate them (for example: changing the proporitions of various trading strategies).
 
 ### Trading venues
-Trading venues can use simulations to test the effects of features of their market (ticksize, number of agents, for example) on variables of interest (number of transactions, for example). There might turn out to be conditions under which the market is not as stable as expected. What would - for example - happen with liquidity if we add a whole bunch trend following algorithms? Would they trigger agents with stop losses? And if so, what would be the net effect on the market? What are the worst case scenarious you have to prepare for?
+Trading venues can use simulations to test the effects of features of their market (ticksize, number of agents, for example) on variables of interest (number of transactions, for example). There might turn out to be conditions under which the market is not as stable as expected. What would - for example - happen to liquidity if we add a whole bunch of trend following algorithms? Would they trigger agents with stop losses? And if so, what would be the net effect on the market? What are the worst case scenarious you have to prepare for?
 
 Questions such as these could be investigated using this simulator.
 
@@ -59,14 +59,14 @@ Secondly: Import the libary.
 from orderGenerator_module.py import *
 ``` 
 
-Lets start by creating a market:
+Step 3: Create a market:
 
 ### Market
 
 `a = market()`
 
-Adding no parameters initializes a market with its default parameters: minimum allowed price = 1, maximum price = 100,
-ticksize = 0.05, minimal quantity of any order = 1 and maximum quantity = 10.
+Adding no parameters initializes a market with default parameters (= minimum allowed price = 1, maximum price = 100,
+ticksize = 0.05, minimal quantity of any order = 1 and maximum quantity = 10).
 
 You can change any of these parameters by putting any of them between brackets:
 
@@ -74,27 +74,28 @@ You can change any of these parameters by putting any of them between brackets:
 
 Now you can start adding your agents:
 
-For now, you can pick any of the following strategies (see Agent section for details strategies):
-- 0: randomUniform
-- 1: randomNormal
-- 2: randomLogNormal
-- 3: marketMaker
-- 4: simpleArbitrage
+For now, you can pick any of the following strategies (see Agent section for more details):
+- randomUniform
+- randomNormal
+- randomLogNormal
+- marketMaker
+- simpleArbitrage
 
 Each strategy has parameters you can customize.
 
-In time you will be able to make your own strategies, using simple supporting functions (you can already by changing the code, of course).
+In time you will be able to make your own strategies, using simple supporting functions. You can already do so by changing the code, of course.
 
 Now: create some agents
 ```
-agent1 = agent(2) # the 2 refers to strategy 2 ("randomLogNormal")
-agent2 = agent(3) # a marketMaker
-agent3 = agent(3, position_limit = 100) # a marketMaker with position limit
+agent1 = agent("randomLogNormal") # initialize agent1 with strategy "randomLogNormal"
+agent2 = agent("randomLogNormal", buy_probability = 0.6) # initialize agent with strategy "randomLogNormal" that buys with probability 0.6 (and sells with probability 0.4). This causes an upwards tendency in the price.
+agent3 = agent("bestBidOffer") # initialize agent2 with strategy "bestBidOffer" (= market maker)
+agent4 = agent("bestBidOffer", position_limit = 100) # a market maker with position limit = 100
 
-a.addAgents([agent1, agent2, agent3])
+a.addAgents([agent1, agent2, agent3, agent4])
 ```
 
-You could add many hundreds of agents (although it will slow down the generator):
+You could add many hundreds of agents (although it might slow down the generator):
 
 ![manyAgents](pictures/manyAgents.png)
 
@@ -104,8 +105,7 @@ Now, having a market with agents, you can start the market/have the various agen
 
 ![showOrderbook()](pictures/showOrderBook.png)
 
-This functions loops through the market, through the agents (from left to right), and have each agent execute its strategy. Once finished, it will repeat. It will do so for (by default) 5000 times. You can of course adjust this number:
-
+This functions loops through the market, through the agents, and have each agent execute its strategy. Once finished, it will repeat. It will do so for (by default) 1000 times. You can of course adjust this number:
 
 `b.orderGenerator(n = 100, clearAt = 10, printOrderbook = True, sleeptime = 5)`
 
