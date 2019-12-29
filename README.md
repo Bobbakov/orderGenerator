@@ -187,9 +187,9 @@ In to order to use this agent, you need two markets:
 a = market()
 b = market()
 
-agent1 = agent(2)
-agent2 = agent(2)
-agent3 = agent(4) # strategy 4 is simpleArbitrage between market a and b
+agent1 = agent("randomLogNormal")
+agent2 = agent("randomLogNormal")
+agent3 = agent("simpleArbitrage") # agent3 arbitrates between market a and b
 
 # Add the agents
 a.addAgents([agent1, agent3])
@@ -199,7 +199,11 @@ b.addAgents([agent2, agent3])
 a.orderGenerator(1000)
 ```
 
-In the near future you can make your own agents buy using simple sets of instrunctions. 
+You can see that the prices follow a similar trajectory:
+
+![simpleArbitrage()](pictures/simpleArbitrage.png)
+
+In the near future you can make your own agents by using simple sets of instrunctions. 
 
 In the near future you can also change more parameters to the agents strategies.
 
@@ -213,5 +217,5 @@ If an order matching an order of the opposite site a transaciton will occur.
 
 ## Where users can get help with your project
 - You can add strategies 
-- You can write  supporting functions that will allow users to create their own strategies
-- Add your own cool ideas
+- You can write supporting functions that will allow users to create their own strategies
+- Add your own cool ideas :)
