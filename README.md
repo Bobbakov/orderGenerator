@@ -105,17 +105,11 @@ Now, having a market with agents, you can start the market/have the various agen
 
 ![showOrderbook()](pictures/showOrderBook.png)
 
-This functions loops through the market, through the agents, and have each agent execute its strategy. Once finished, it will repeat. It will do so for (by default) 1000 times. You can of course adjust this number:
+This functions loops through the market, through the agents, and have each agent execute its strategy. Once finished, it will repeat. It will do so for (by default) 1000 times. You can of course adjsut this number (and other parameters):
 
 `b.orderGenerator(n = 100, clearAt = 10, printOrderbook = True, sleeptime = 5)`
 
-where 
-- n = number of iterations.
-- clearAt = number of iterations after which orderbook gets emptied.
-- printOrderbook = False by default. Set to True if you want to display intermediate orderbook.
-- sleeptime = seconds between interations. Useful to slowdown printing intermediate results.
-
-Once the loop is finished, we can see our results.
+Once the loop is finished, we can see the results:
 
 `a.summary()`
 
@@ -129,7 +123,7 @@ This shows four graphs:
 
 You can also just check the price by:
 
-`a.plot()`
+`a.plotPrice()`
 
 ![plot()](pictures/plot.png)
 
