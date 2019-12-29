@@ -1,89 +1,41 @@
 ###############################################################################
 # IMPORT REQUIRED LIBRARIES
 ###############################################################################
-from datetime import datetime
 import itertools
-
-# IMPORT random + numpy 
-# SET random.seed values = 100 --> SAME RANDOM SEQUENCES GERENATED EACH TIME
+from datetime import datetime, timedelta
 import random
 import numpy as np
-
 import operator
 from matplotlib import pyplot as plt
 import pandas as pd    
 import seaborn as sns
+import time
 
 # SET DEFAULT FIGURE SIZE
-sns.set(rc={'figure.figsize':(20, 10)})
-
-import time
-###############################################################################
-# ORDER: SUPPORTING FUNCTIONS FOR ORDER
-###############################################################################
-# Remove offer from orderbook
-def removeOffer(offer, market):
-    a = order.activeSellOrders[market.id]
-    for c, o in enumerate(a):
-        if o.id == offer.id:
-            del a[c]
-            break
-
-# Reduce quantity offer in orderbook
-def reduceOffer(offer, transactionQuantity, market):
-    a = order.activeSellOrders[market.id]
-    for c, o in enumerate(a):
-        if o.id == offer.id:
-            if a[c].quantity == transactionQuantity:
-                removeOffer(offer, market)
-            else:
-                a[c].quantity -= transactionQuantity
-            break
-
-# Remove bid from orderbook
-def removeBid(bid, market):
-    a = order.activeBuyOrders[market.id]
-    for c, o in enumerate(a):
-        if o.id == bid.id:
-            del a[c]
-            break  
-        
-# Reduce quantity bid in orderbook
-def reduceBid(bid, transactionQuantity, market):
-    a = order.activeBuyOrders[market.id]
-    for c, o in enumerate(a):
-        if o.id == bid.id:
-            if a[c].quantity == transactionQuantity:
-                removeBid(bid, market)
-            else:
-               a[c].quantity -= transactionQuantity
-            break
-
-# If price has been printed in market --> return last price. Else --> return mid price
-def getLastPriceOrElse(market):
-    if market.id in transaction.historyRaw.keys():
-        p = transaction.historyRaw[market.id][-1].price 
-    else:
-        p = (market.maxprice - market.minprice)/2             
-    return p
+sns.set(rc={'figure.figsize':(10, 5)})
 
 ###############################################################################
 # ORDER
 ###############################################################################
 class order():
     counter = itertools.count()
+    datetimeCounter = datetime(2019, 1, 1, 9, 0, 0)
     history = {}
     activeOrders = {}
     activeBuyOrders = {}
     activeSellOrders = {}
+    historyIntialOrder = {}
     
     # Initialize order
     def __init__(self, market, agent, side, price, quantity):
         self.id = next(order.counter)
-        self.datetime = datetime.now()
+        order.datetimeCounter += timedelta(seconds = 1)
+        self.datetime = order.datetimeCounter 
         self.market = market
         self.agent = agent
         self.side = side
+        price = round(price/market.ticksize) * market.ticksize
+        price = float("%.2f"%(price))
         self.price = price
         self.quantity = quantity
         
@@ -93,14 +45,18 @@ class order():
             order.activeOrders[market.id] = []
             order.activeBuyOrders[market.id] = []
             order.activeSellOrders[market.id] = []
-        
+            order.historyIntialOrder[market.id] = {}
+            
         # Add order to order history
         order.history[market.id].append(self)
+        
+        # Add hardcoded values to dictionaries (If you add self --> values get overwritten)
+        order.historyIntialOrder[market.id][self.id] = {"id": self.id, "market": market, "side": side, 
+                         "price": price, "quantity": quantity}
         
         # Check if order results in transaction
         # If order is buy order
         if self.side == "Buy":
-        
             # start loop
             remainingQuantity = self.quantity
             while True:
@@ -121,7 +77,7 @@ class order():
                             transaction(self, bestOffer, market, transactionPrice, transactionQuantity)
                             
                             # Remove offer from orderbook
-                            removeOffer(bestOffer, market)  
+                            order.removeOffer(bestOffer, market)  
                             
                             # Reduce remaining quantity order
                             remainingQuantity -= transactionQuantity
@@ -134,10 +90,11 @@ class order():
                             transaction(self, bestOffer, market, transactionPrice, transactionQuantity)
                             
                             # Remove offer from orderbook
-                            removeOffer(bestOffer, market) 
+                            order.removeOffer(bestOffer, market) 
 
                             # Buy order is executed --> break loop
-                            break       
+                            break   
+                        
                         # if quantity buy order is small than quantity best offer --> reduce quantity best offer
                         else:
                             transactionQuantity = remainingQuantity
@@ -146,7 +103,7 @@ class order():
                             transaction(self, bestOffer, market, transactionPrice, transactionQuantity)
                             
                             # Reduce quantity offer
-                            reduceOffer(bestOffer, transactionQuantity, market)
+                            order.reduceOffer(bestOffer, transactionQuantity, market)
                             
                             # Buy order is executed --> break loop
                             break
@@ -169,91 +126,128 @@ class order():
                 
         # If order is sell order                  
         else:
-            
             # start loop
             remainingQuantity = self.quantity
             while True:
-                    # if there are active buy orders --> continue
-                    if not not order.activeBuyOrders[market.id]:
-                        buyOrders = sorted(order.activeBuyOrders[market.id], key = operator.attrgetter("price"), reverse = True)
-                        bestBid = buyOrders[0]
-                        # If price sell order <= price best bid --> transaction
-                        if bestBid.price >= self.price:
-                            transactionPrice = bestBid.price
+                # if there are active buy orders --> continue
+                if not not order.activeBuyOrders[market.id]:
+                    buyOrders = sorted(order.activeBuyOrders[market.id], key = operator.attrgetter("price"), reverse = True)
+                    bestBid = buyOrders[0]
+                    
+                    # If price sell order <= price best bid --> transaction
+                    if bestBid.price >= self.price:
+                        transactionPrice = bestBid.price
+                        
+                        # If quantity offer larger than quantity best bid
+                        if remainingQuantity > bestBid.quantity:
+                            transactionQuantity = bestBid.quantity
                             
-                            # If quantity offer larger than quantity best bid
-                            if remainingQuantity > bestBid.quantity:
-                                transactionQuantity = bestBid.quantity
-                                
-                                # Register transaction
-                                transaction(bestBid, self, market, transactionPrice, transactionQuantity)
-                                
-                                # Remove bid from orderbook
-                                removeBid(bestBid, market)    
-                                
-                                remainingQuantity -= transactionQuantity
-                              # If quantity order equals quantity best offer    
-                            elif remainingQuantity == bestBid.quantity:
-                                transactionQuantity = bestBid.quantity
-                                
-                                # Register transaction
-                                transaction(bestBid, self, market, transactionPrice, transactionQuantity)
-                                
-                                # Remove best bid from orderbook
-                                removeBid(bestBid, market) 
-    
-                                # Order is executed --> break loop
-                                break       
+                            # Register transaction
+                            transaction(bestBid, self, market, transactionPrice, transactionQuantity)
                             
-                            # If quantity sell order is smaller than quantity best bid
-                            else:
-                                transactionQuantity = remainingQuantity
-                                
-                                # Register transaction
-                                transaction(bestBid, self, market, transactionPrice, transactionQuantity)
-                                
-                                # Reduce quantity best bid
-                                reduceBid(bestBid, transactionQuantity, market)
-                                break
+                            # Remove bid from orderbook
+                            order.removeBid(bestBid, market)    
                             
-                        # If best offer price > best bid price --> no transaction     
+                            remainingQuantity -= transactionQuantity
+                          # If quantity order equals quantity best offer    
+                        elif remainingQuantity == bestBid.quantity:
+                            transactionQuantity = bestBid.quantity
+                            
+                            # Register transaction
+                            transaction(bestBid, self, market, transactionPrice, transactionQuantity)
+                            
+                            # Remove best bid from orderbook
+                            order.removeBid(bestBid, market) 
+
+                            # Order is executed --> break loop
+                            break       
+                        
+                        # If quantity sell order is smaller than quantity best bid
                         else:
-                            self.quantity = remainingQuantity
-                            order.activeOrders[market.id].append(self)
-                            order.activeSellOrders[market.id].append(self)
+                            transactionQuantity = remainingQuantity
+                            
+                            # Register transaction
+                            transaction(bestBid, self, market, transactionPrice, transactionQuantity)
+                            
+                            # Reduce quantity best bid
+                            order.reduceBid(bestBid, transactionQuantity, market)
                             break
                         
-                    # If there are no active buy orders --> add order to active orders         
-                    else: 
+                    # If best offer price > best bid price --> no transaction     
+                    else:
                         self.quantity = remainingQuantity
                         order.activeOrders[market.id].append(self)
                         order.activeSellOrders[market.id].append(self)
                         break
+                    
+                # If there are no active buy orders --> add order to active orders         
+                else: 
+                    self.quantity = remainingQuantity
+                    order.activeOrders[market.id].append(self)
+                    order.activeSellOrders[market.id].append(self)
+                    break
                 
-            
+###############################################################################
+# ORDER: SUPPORTING FUNCTIONS
+###############################################################################                            
     def __str__(self):
         return "{} \t {} \t {} \t {} \t {}".format(self.market, self.agent.name, self.side, self.price, self.quantity)
 
-###############################################################################
-# TRANSACTION: SUPPORTING FUNCTIONS FOR TRANSACTIONS
-###############################################################################
-def transactionDescription(bid, offer, market, price, quantity):
-    return print("At market {} - Best bid: {} ({}) Best offer: {} ({}) --> Transaction at: {} ({})".format(market.id, bid.price, bid.quantity, 
-                 offer.price, offer.quantity, price, quantity))
-
+    # Remove offer from orderbook
+    def removeOffer(offer, market):
+        a = order.activeSellOrders[market.id]
+        for c, o in enumerate(a):
+            if o.id == offer.id:
+                del a[c]
+                break
+    
+    # Reduce quantity offer in orderbook
+    def reduceOffer(offer, transactionQuantity, market):
+        a = order.activeSellOrders[market.id]
+        for c, o in enumerate(a):
+            if o.id == offer.id:
+                if a[c].quantity == transactionQuantity:
+                    order.removeOffer(offer, market)
+                else:
+                    a[c].quantity -= transactionQuantity
+                break
+    
+    # Remove bid from orderbook
+    def removeBid(bid, market):
+        a = order.activeBuyOrders[market.id]
+        for c, o in enumerate(a):
+            if o.id == bid.id:
+                del a[c]
+                break  
+            
+    # Reduce quantity bid in orderbook
+    def reduceBid(bid, transactionQuantity, market):
+        a = order.activeBuyOrders[market.id]
+        for c, o in enumerate(a):
+            if o.id == bid.id:
+                if a[c].quantity == transactionQuantity:
+                    order.removeBid(bid, market)
+                else:
+                   a[c].quantity -= transactionQuantity
+                break
+            
 ###############################################################################
 # TRANSACTION
 ###############################################################################
 class transaction():
     counter = itertools.count()
-    historyRaw = {}
+    history = {}
     historyList = {}
-    MarketAgent = {}
+    historyMarketAgent = {}
     
     # Initialize transaction
     def __init__(self, buyOrder, sellOrder, market, price, quantity):
-        self.id = next(transaction.counter)
-        self.datetime = datetime.now()
+        market.transaction_counter += 1
+        self.id  = market.transaction_counter
+        
+        # If transaction is buyer initiated --> take buyOrder.datetime == trade time.
+        # Else --> take sellOrder.datetime
+        self.datetime = max(buyOrder.datetime, sellOrder.datetime)
         self.market = market
         self.buyOrder = buyOrder
         self.sellOrder = sellOrder
@@ -274,16 +268,16 @@ class transaction():
             sellOrder.agent.quantityBought[market.id] = 0
             sellOrder.agent.valueSold[market.id] = 0 
             sellOrder.agent.quantitySold[market.id] = 0   
-        
-        if not market.id in transaction.historyRaw.keys():
-            transaction.historyRaw[market.id] = []
+            
+        if not market.id in transaction.history.keys():
+            transaction.history[market.id] = []
             transaction.historyList[market.id] = []
             
-        if not (market.id, buyOrder.agent.name) in transaction.MarketAgent.keys():
-            transaction.MarketAgent[market.id, buyOrder.agent.name] = []
+        if not (market.id, buyOrder.agent.name) in transaction.historyMarketAgent.keys():
+            transaction.historyMarketAgent[market.id, buyOrder.agent.name] = []
             
-        if not (market.id, sellOrder.agent.name) in transaction.MarketAgent.keys():
-            transaction.MarketAgent[market.id, sellOrder.agent.name] = []    
+        if not (market.id, sellOrder.agent.name) in transaction.historyMarketAgent.keys():
+            transaction.historyMarketAgent[market.id, sellOrder.agent.name] = []    
         
         # Update values agents at market
         buyOrder.agent.position[market.id] += quantity
@@ -291,195 +285,236 @@ class transaction():
         buyOrder.agent.valueBought[market.id] += price * quantity
         buyOrder.agent.quantityBought[market.id] += quantity
         sellOrder.agent.valueSold[market.id] += price * quantity
-        sellOrder.agent.quantitySold[market.id] += quantity            
+        sellOrder.agent.quantitySold[market.id] += quantity          
         
         # Add to transaction history
-        transaction.historyRaw[market.id].append(self)
+        transaction.history[market.id].append(self)
         transaction.historyList[market.id].append([self.id, self.datetime.time(), self.price])
         
         # Add to history agent at market
-        transaction.MarketAgent[market.id, buyOrder.agent.name].append([self.id, 
+        transaction.historyMarketAgent[market.id, buyOrder.agent.name].append([self.id, 
                                buyOrder.agent.position[market.id], 
-                               calculateRprofit(buyOrder.agent, market)])
-        transaction.MarketAgent[market.id, sellOrder.agent.name].append([self.id, 
+                               transaction.calculateRprofit(buyOrder.agent, market)])
+        transaction.historyMarketAgent[market.id, sellOrder.agent.name].append([self.id, 
                                sellOrder.agent.position[market.id], 
-                               calculateRprofit(sellOrder.agent, market)])
+                               transaction.calculateRprofit(sellOrder.agent, market)])
     
+###############################################################################
+# TRANSACTION: SUPPORTING FUNCTIONS
+###############################################################################
     # Display transaction
     def __str__(self):
         return "{} \t {} \t {} \t {} \t {} \t {} \t {}".format(self.id, self.datetime.time(), self.market, self.buyOrder.agent.name, self.sellOrder.agent.name, self.price, self.quantity)        
     
-###############################################################################
-# SUPPORTING FUNCTIONS AGENT
-###############################################################################  
-# Calculate realized profit agent at market        
-def calculateRprofit(self, market):
-    if self.quantitySold[market.id] > 0:
-        askVwap = self.valueSold[market.id]/self.quantitySold[market.id]
-    else:
-        askVwap = 0
-    if self.quantityBought[market.id] > 0:
-        bidVwap = self.valueBought[market.id]/self.quantityBought[market.id]
-    else:
-        bidVwap = 0
+    # Calculate realized profit agent at market        
+    def calculateRprofit(agent, market):
+        if agent.quantitySold[market.id] > 0:
+            askVwap = agent.valueSold[market.id]/agent.quantitySold[market.id]
+        else:
+            askVwap = 0
+        if agent.quantityBought[market.id] > 0:
+            bidVwap = agent.valueBought[market.id]/agent.quantityBought[market.id]
+        else:
+            bidVwap = 0
+            
+        q = min(agent.quantitySold[market.id], agent.quantityBought[market.id])
+        rp = q * (askVwap - bidVwap)
+        return rp 
+    
+    def transactionDescription(bid, offer, market, price, quantity):
+        return print("At market {} - Best bid: {} ({}) Best offer: {} ({}) --> Transaction at: {} ({})".format(market.id, bid.price, bid.quantity, 
+                     offer.price, offer.quantity, price, quantity))
         
-    q = min(self.quantitySold[market.id], self.quantityBought[market.id])
-    rp = q * (askVwap - bidVwap)
-    return rp     
-
-
 ###############################################################################
-# AGENTS: TRADING STRATEGIES
-###############################################################################
-###############################################################################
-# AGENTS: RANDOM AGENTS
+# STRATEGIES
 ###############################################################################      
 # Randomly choose Buy/Sell order with both quantity and price from uniform distribution
-def randomUniform(self, market):
-    side = random.choice(["Buy", "Sell"])
-    price = np.arange(market.minprice, market.maxprice, market.ticksize)
-    price = np.random.choice(price)
-    quantity = random.randint(market.minquantity, market.maxquantity)
-    
-    # Send order to market
-    order(market, self, side, price, quantity)
-
-# Randomly choose Buy/Sell order with price from normal distribution      
-def randomNormal(self, market):
-    side = random.choice(["Buy", "Sell"])
-    
-    lastPrice = getLastPriceOrElse(market)
-    std = 0.1 * lastPrice
-    price = np.random.normal(lastPrice, std)
-    quantity = random.randint(market.minquantity, market.maxquantity)
-    
-    # Send order to market
-    order(market, self, side, price, quantity)    
-
-# Randomly choose Buy/Sell order with price from lognormal distribution          
-def randomLogNormal(self, market):
-    side = random.choice(["Buy", "Sell"])
-
-    lastPrice = getLastPriceOrElse(market)
-    
-    price = lastPrice * np.random.lognormal(0, 0.2)
-    # Correct for ticksize market
-    price = round(price/market.ticksize) * market.ticksize
-    quantity = random.randint(market.minquantity, market.maxquantity)
-    
-    # Send order to market
-    order(market, self, side, price, quantity)    
-
-###############################################################################
-# AGENTS: MARKET MAKER
-############################################################################### 
-# Agents always tries to be best bid and best offer at market. If he is not --> he improves price by 1 tick.
-# If position limit is exceeded --> agent closes position at market (in case position > 0) or buys back all shorts (in case position < 0)
-def bestBidOffer(self, market):
-    quantity = random.randint(market.minquantity, market.maxquantity)
-    
-    # If agent has position_limit --> check if limit is exceeded    
-    if "position_limit" in self.parameters.keys(): 
-        position_limit = self.parameters["position_limit"]
+class strategies():
+    def randomUniform(agentId, market):
+        side = random.choice(["Buy", "Sell"])
+        price = np.arange(market.minprice, market.maxprice, market.ticksize)
+        price = np.random.choice(price)
+        quantity = random.randint(market.minquantity, market.maxquantity)
         
-        if market.id in self.position.keys():
-            if self.position[market.id] > position_limit:
-                order(market, self, "Sell", market.minprice, abs(self.position[market.id]))  
-            elif self.position[market.id] < - position_limit:
-                order(market, self, "Buy", market.maxprice, abs(self.position[market.id]))  
-            
-    # If there are active buy orders --> improve best bid by one tick
-    if market.id in order.activeBuyOrders.keys():
-        if not not order.activeBuyOrders[market.id]:
-            buyOrders = sorted(order.activeBuyOrders[market.id], key = operator.attrgetter("price"), reverse = True)
-            bestBid = buyOrders[0]
-            
-            # If trader is not best bid --> improve best bid
-            if not bestBid.agent.name == self.name:
-                order(market, self, "Buy", bestBid.price + market.ticksize, quantity)    
-            else:
-                pass
-        # Else --> create best bid    
-        else:
-            order(market, self, "Buy", market.minprice, quantity)
-    # If no buy orders active in market --> start the market
-    else:
-        order(market, self, "Sell", market.maxprice, quantity)
+        # Send order to market
+        order(market, agentId, side, price, quantity)
     
-    # If there are active sell orders --> improve best offer by one tick
-    if market.id in order.activeSellOrders.keys():
-        if not not order.activeSellOrders[market.id]:
-            sellOrders = sorted(order.activeSellOrders[market.id], key = operator.attrgetter("price"))
-            bestOffer = sellOrders[0]
-            
-            # If trader is not best offer --> improve best offer
-            if not bestOffer.agent.name == self.name:
-                order(market, self, "Sell", bestOffer.price - market.ticksize, quantity)    
+    # Randomly choose Buy/Sell order with price from normal distribution      
+    def randomNormal(agentId, market):
+        side = random.choice(["Buy", "Sell"])
+        lastPrice = agent.getLastPriceOrElse(market)
+        std = 0.1 * lastPrice
+        price = np.random.normal(lastPrice, std)
+        quantity = random.randint(market.minquantity, market.maxquantity)
+        
+        # Send order to market
+        order(market, agentId, side, price, quantity)    
+    
+    # Randomly choose Buy/Sell order with price from lognormal distribution          
+    def randomLogNormal(agentId, market, buy_probability = 0.5):
+        
+        if "buy_probability" in agentId.params.keys():  
+            buy_probability = agentId.params["buy_probability"]
+        
+        sell_probability = 1 - buy_probability
+        side = np.random.choice(["Buy", "Sell"], p=[buy_probability, sell_probability])
+        lastPrice = agent.getLastPriceOrElse(market)        
+        price = lastPrice * np.random.lognormal(0, 0.2)
+        quantity = random.randint(market.minquantity, market.maxquantity)
+        
+        # Send order to market
+        order(market, agentId, side, price, quantity)    
+    
+    ###############################################################################
+    # AGENT: MARKET MAKER
+    ############################################################################### 
+    # Agents always tries to be best bid and best offer at market. If he is not --> he improves price by 1 tick.
+    # If position limit is exceeded --> agent closes position at market (in case position > 0) or buys back all shorts (in case position < 0)
+    def bestBidOffer(agentId, market):
+        quantity = random.randint(market.minquantity, market.maxquantity)
+        
+        # If agent has position_limit --> check if limit is exceeded    
+        if "position_limit" in agentId.params.keys():  
+            position_limit = agentId.params["position_limit"]
+            if market.id in agentId.position.keys():
+                if agentId.position[market.id] > position_limit:
+                    order(market, agentId, "Sell", market.minprice, abs(agentId.position[market.id]))  
+                elif agentId.position[market.id] < -1 * position_limit:
+                    order(market, agentId, "Buy", agent.getLastPriceOrElse(market) * 2, abs(agentId.position[market.id]))  
+                
+        # If there are active buy orders --> improve best bid by one tick
+        if market.id in order.activeBuyOrders.keys():
+            if not not order.activeBuyOrders[market.id]:
+                buyOrders = sorted(order.activeBuyOrders[market.id], key = operator.attrgetter("price"), reverse = True)
+                bestBid = buyOrders[0]
+                
+                # If trader is not best bid --> improve best bid
+                if not bestBid.agent.name == agentId.name:
+                    order(market, agentId, "Buy", bestBid.price + market.ticksize, quantity)    
+                else:
+                    pass
+            # Else --> create best bid    
             else:
-                pass
-        # Else --> create best bid    
+                order(market, agentId, "Buy", market.minprice, quantity)
+        # If no buy orders active in market --> start the market
         else:
-            order(market, self, "Sell", market.maxprice, quantity) 
-    else:
-        # If no sell orders active in market --> start the market
-        order(market, self, "Sell", market.maxprice, quantity)
-  
-###############################################################################
-# AGENTS: ARBITRAGE (BETWEEN MARKETS)
-###############################################################################         
-# Agent buys bestOffer at MarketB if its price is lower than bestBid at marketA. 
-# He simultenously sells to bestBid at marketA.
-# The same goes the other way around.        
-def simpleArbitrage(self, marketA, marketB):
-    # If marketA is initiated
-    if marketA.id in order.activeBuyOrders.keys():
-        # If there are active buy orders
-        if not not order.activeBuyOrders[marketA.id]:
-            # If marketB is initiated
-            if marketB.id in order.activeSellOrders.keys(): 
-                # If there are active sell orders
-                if not not order.activeSellOrders[marketB.id]:
-                    buyOrdersMarketA = sorted(order.activeBuyOrders[marketA.id], key = operator.attrgetter("price"), reverse = True)
-                    bestBidMarketA = buyOrdersMarketA[0]
-                    
-                    sellOrdersMarketB = sorted(order.activeSellOrders[marketB.id], key = operator.attrgetter("price"), reverse = False)
-                    bestOfferMarketB = sellOrdersMarketB[0]
-                    
-                    if bestBidMarketA.price > bestOfferMarketB.price:
-                        order(marketB, self, "Buy", bestOfferMarketB.price, bestOfferMarketB.quantity)
-                        order(marketA, self, "Sell", bestBidMarketA.price, bestBidMarketA.quantity)
-    # The other way around                        
-    if marketA.id in order.activeSellOrders.keys(): 
-        if not not order.activeSellOrders[marketA.id]: 
-            if marketB.id in order.activeBuyOrders.keys(): 
-                if not not order.activeBuyOrders[marketB.id]:
-                    sellOrdersMaketA = sorted(order.activeSellOrders[marketA.id], key = operator.attrgetter("price"), reverse = False)
-                    bestOfferMarketA = sellOrdersMaketA[0]
-                    
-                    buyOrdersMarketB = sorted(order.activeBuyOrders[marketB.id], key = operator.attrgetter("price"), reverse = True)
-                    bestBidMarketB = buyOrdersMarketB[0]
-                    
-                    if bestBidMarketB.price > bestOfferMarketA.price:
-                        order(marketA, self, "Buy", bestOfferMarketA.price, bestOfferMarketA.quantity)
-                        order(marketB, self, "Sell", bestBidMarketB.price, bestBidMarketB.quantity)
+            order(market, agentId, "Sell", market.maxprice, quantity)
+        
+        # If there are active sell orders --> improve best offer by one tick
+        if market.id in order.activeSellOrders.keys():
+            if not not order.activeSellOrders[market.id]:
+                sellOrders = sorted(order.activeSellOrders[market.id], key = operator.attrgetter("price"))
+                bestOffer = sellOrders[0]
+                
+                # If trader is not best offer --> improve best offer
+                if not bestOffer.agent.name == agentId.name:
+                    order(market, agentId, "Sell", bestOffer.price - market.ticksize, quantity)    
+                else:
+                    pass
+            # Else --> create best bid    
+            else:
+                order(market, agentId, "Sell", market.maxprice, quantity) 
+        else:
+            # If no sell orders active in market --> start the market
+            order(market, agentId, "Sell", market.maxprice, quantity)
+      
+    ###############################################################################
+    # AGENT: ARBITRAGE (BETWEEN MARKETS)
+    ###############################################################################         
+    # If price at marketB is lower than bestBid at marketA --> agents buys bestOffer at MarketB and sells to bestBid at marketA.
+    # The same goes the other way around.        
+    def simpleArbitrage(agentId, marketA, marketB):
+        # If marketA is initiated
+        if marketA.id in order.activeBuyOrders.keys():
+            # If there are active buy orders
+            if not not order.activeBuyOrders[marketA.id]:
+                # If marketB is initiated
+                if marketB.id in order.activeSellOrders.keys(): 
+                    # If there are active sell orders
+                    if not not order.activeSellOrders[marketB.id]:
+                        buyOrdersMarketA = sorted(order.activeBuyOrders[marketA.id], key = operator.attrgetter("price"), reverse = True)
+                        bestBidMarketA = buyOrdersMarketA[0]
+                        
+                        sellOrdersMarketB = sorted(order.activeSellOrders[marketB.id], key = operator.attrgetter("price"), reverse = False)
+                        bestOfferMarketB = sellOrdersMarketB[0]
+                        
+                        if bestBidMarketA.price > bestOfferMarketB.price:
+                            order(marketB, agentId, "Buy", bestOfferMarketB.price, bestOfferMarketB.quantity)
+                            order(marketA, agentId, "Sell", bestBidMarketA.price, bestBidMarketA.quantity)
+        # The other way around                        
+        if marketA.id in order.activeSellOrders.keys(): 
+            if not not order.activeSellOrders[marketA.id]: 
+                if marketB.id in order.activeBuyOrders.keys(): 
+                    if not not order.activeBuyOrders[marketB.id]:
+                        sellOrdersMaketA = sorted(order.activeSellOrders[marketA.id], key = operator.attrgetter("price"), reverse = False)
+                        bestOfferMarketA = sellOrdersMaketA[0]
+                        
+                        buyOrdersMarketB = sorted(order.activeBuyOrders[marketB.id], key = operator.attrgetter("price"), reverse = True)
+                        bestBidMarketB = buyOrdersMarketB[0]
+                        
+                        if bestBidMarketB.price > bestOfferMarketA.price:
+                            order(marketA, agentId, "Buy", bestOfferMarketA.price, bestOfferMarketA.quantity)
+                            order(marketB, agentId, "Sell", bestBidMarketB.price, bestBidMarketB.quantity)
+    
+    ###############################################################################
+    # AGENT: ONE BUY ORDER WITH STOP LOSS
+    ###############################################################################
+    def stopLoss(agentId, market):
+        '''
+        if market.id in self.lastOrder.keys():
+            if (self.lastOrder[market.id].side == "Buy"):
+                self.stop[market.id] = self.lastOrder[market.id].price * (1 + stop_loss)
+        
+        lastPrice = agent.getLastPriceOrElse(market)
+        
+        # If agent doesn't have position in market
+        if (not market.id in agent.position.keys()) or (agent.position[market.id] == 0):
+            # Agent buys at market (= for any price). This is +- equivalent to buying at price = lastPrice * 2
+            price = market.maxprice
+            # Correct for ticksize market
+            quantity = random.randint(market.minquantity, market.maxquantity)
+            
+            # Send order to market
+            order(market, self, "Buy", price, quantity)  
+            
+            # Initiate stop
+            if "stop_loss" in self.params.keys():  
+                stop_loss = self.params["stop_loss"]
+            self.stop[market.id] = price * (1 + stop_loss)
+        else:
+            if lastPrice < self.stop[market.id]:
+                # Sell position at market
+                order(market, self, "Sell", market.minprice, self.position[market.id])  
+        '''
+        return 0
+    
+    ###############################################################################
+    # AGENT: ADD strategies TO ARRAY
+    ############################################################################### 
+    strategies = [randomUniform, randomNormal, randomLogNormal, bestBidOffer, simpleArbitrage, stopLoss]
+    strategiesName = ["randomUniform", "randomNormal", "randomLogNormal", "bestBidOffer", "simpleArbitrage", "stopLoss"]
+    linestyles = ["solid", "dotted", "solid", "dashed", "dashdot", "dashed"]
+    strategiesDict = {}
+    
+    for i, x in enumerate(strategiesName):
+        # print(i)
+        if (i%2 == 0):
+            strategiesDict[x] = {"strategy": strategies[i], "linestyle": "dotted"}
+        else:
+            strategiesDict[x] = {"strategy": strategies[i], "linestyle": "solid"}
 
-###############################################################################
-# AGENTS: ADD strategies TO ARRAY
-############################################################################### 
-strategies = [randomUniform, randomNormal, randomLogNormal, bestBidOffer, simpleArbitrage]
-strategiesDict = dict(zip(range(0, len(strategies)), strategies))
 ###############################################################################
 # AGENT
 ###############################################################################      
-
 class agent():  
     counter = itertools.count()
+    agents = []
     
     # Initialize agent
-    def __init__(self, strategy, **parameters): 
+    def __init__(self, strategy, **params): 
         self.name = next(agent.counter)
         self.strategy = strategy
-        self.parameters = parameters
+        self.params = params
         
         # STARTS WITH EMPTY VALUES
         self.position = {}
@@ -488,18 +523,35 @@ class agent():
         self.valueBought = {}
         self.quantityBought = {}
         self.valueSold = {}
-        self.quantitySold = {}  
+        self.quantitySold = {} 
         
+        self.stop = {}
+        
+        agent.agents.append(self)
+        
+###############################################################################
+# AGENT: SUPPORTING FUNCTIONS
+###############################################################################  
+    
+    # If price has been printed in market --> return last price. Else --> return mid price
+    def getLastPriceOrElse(market):
+        if market.id in transaction.history.keys():
+            p = transaction.history[market.id][-1].price 
+        else:
+            p = (market.maxprice - market.minprice)/2             
+        return p
+
 ###############################################################################
 # MARKET
 ############################################################################### 
 class market():
     counter = itertools.count()
     markets = []
-       
+        
     # Initialize market
     def __init__(self, minprice = 1, maxprice = 100, ticksize = 0.05, minquantity = 1, maxquantity = 10):
         self.id = next(market.counter)
+        self.transaction_counter = 0
         self.minprice = minprice
         self.maxprice = maxprice
         self.ticksize = ticksize
@@ -514,100 +566,244 @@ class market():
         # Make sure simulations start from same feed --> that way they can be easily compared 
         random.seed(100)
         np.random.seed(100)
-    
-    def __str__(self):
-        return "{}".format(self.id)    
- 
-    # Add your agents to the market     
-    def addAgents(self, agents):
-        for a in agents:
-            self.agents.append(a)
-  
+      
     # Start agents sending in orders to market(s)
-    def orderGenerator(self, n = 5000, clearAt = 10000, printOrderbook = False, sleeptime = 0):
+    def orderGenerator(self, n = 100, clearAt = 10000, printOrderbook = False, sleeptime = 0, all_markets = False):
         c = 1
-                 
+            
         # For each iteration
         for o in range(int(n)):   
             # For each market
-            for m in market.markets:
+            if all_markets:
+                for m in market.markets:
+                    # For each agent
+                    for a in m.agents:
+                        # Take strategy agent
+                        strategyAgent = strategies.strategiesDict[a.strategy]["strategy"]
+                        
+                        # Keep track of last transaction printed
+                        if self.id in transaction.history.keys():
+                            lastTransactionId = transaction.history[self.id][-1].id
+                        else:
+                            lastTransactionId = -1
+                            
+                        # If strategy == simpleArbitrage --> number of markets should be 2.
+                        if (a.strategy == "simpleArbitrage"):
+                            if (len(market.markets) == 2): 
+                                m1, m2 = market.markets
+                                strategyAgent(a, m1, m2)
+                        else:
+                            strategyAgent(a, m)
+                        
+                        if printOrderbook:
+                            self.printOrderbook(lastTransactionId)                    
+                            
+                            # Slow down printing orderbook
+                            time.sleep(float(sleeptime))  
+                            
+            # If we only generate orders for this market
+            else:
                 # For each agent
-                for a in m.agents:
+                for a in self.agents:
                     # Take strategy agent
-                    strategyAgent = strategiesDict[a.strategy] 
+                    strategyAgent = strategies.strategiesDict[a.strategy]["strategy"]
                     
+                    # Keep track of last transaction printed
+                    if self.id in transaction.history.keys():
+                        lastTransactionId = transaction.history[self.id][-1].id
+                    else:
+                        lastTransactionId = -1
+                        
                     # If strategy == simpleArbitrage --> number of markets should be 2.
-                    if (a.strategy == 4):
+                    if (a.strategy == "simpleArbitrage"):
                         if (len(market.markets) == 2): 
                             m1, m2 = market.markets
                             strategyAgent(a, m1, m2)
                     else:
-                        strategyAgent(a, m)
+                        strategyAgent(a, self)
+                    
+                    if printOrderbook:
+                        self.printOrderbook(lastTransactionId)                    
+                        
+                        # Slow down printing orderbook
+                        time.sleep(float(sleeptime))  
                     
                 c+= 1
                 
                 # Clear orderbook at fixed intervals
                 if (c%clearAt == 0):
-                    self.clear()   
-                
-                # Print orderbook in progress    
-                if printOrderbook:
-                    print("Iteration {}".format(c))
+                    self.clear()  
                     
-                    if self.id in transaction.historyRaw.keys():
-                        
-                        # Print last five transactions
-                        for x in transaction.historyRaw[self.id][-5:]:
-                            print("Trade {}: {} buys {} from {} for {}".format(x.id, x.buyOrder.agent.name, x.quantity, x.sellOrder.agent.name, x.price))
-                        
-                    self.showOrderbook()
-                    
-                    # Slow down printing orderbook
-                    time.sleep(float(sleeptime))
-            
+    def test(self, n = 1000):
+        a1 = agent("randomLogNormal", buy_probability = 0.7)
+        a2 = agent("bestBidOffer")
+        a3 = agent("randomLogNormal")
+        a4 = agent("bestBidOffer")
+        a5 = agent("bestBidOffer")
+        agents = [a1, a2, a3, a4, a5]
+        self.addAgents(agents)
+        self.orderGenerator(n, printOrderbook = False, sleeptime = 0)
+   
+    # Initiate a healthy or normal market     
+    def healthy(self, n = 1000):
+        a1 = agent("randomLogNormal", buy_probability = 0.7)
+        a2 = agent("bestBidOffer", position_limit = 100)
+        a3 = agent("randomLogNormal")
+        a4 = agent("bestBidOffer", position_limit = 100)
+        a5 = agent("bestBidOffer", position_limit = 100)
+        agents = [a1, a2, a3, a4, a5]
+        self.addAgents(agents)
+        self.orderGenerator(n, printOrderbook = False, sleeptime = 0)
+        
+        # Initiate a healthy or normal market     
+    def twoPlayers(self, n = 1000):
+        agent("randomLogNormal", buy_probability = 0.55)
+        agent("bestBidOffer", position_limit = 100)
+        agents = agent.agents
+        self.addAgents(agents)
+        self.orderGenerator(n, printOrderbook = False, sleeptime = 0)
+    # Initialize a stressed market
+    
+    
+###############################################################################
+# MARKET: SUPPORTING FUNCTIONS
+###############################################################################     
+    def __str__(self):
+        return "{}".format(self.id)    
+    
+    # Add your agents to the market     
+    def addAgents(self, agents):
+        for a in agents:
+            self.agents.append(a)            
+
     # Empty active orders        
     def clear(self):
         order.activeBuyOrders[self.id] = []
         order.activeSellOrders[self.id] = []
     
-    # Plot price + running volatility
-    def plot(self):
-        df = pd.DataFrame(transaction.historyList[self.id], columns = ["id", "time", "price"])
-        df[["id", "price"]]
-        df = df.set_index("id")
-        return df.plot() 
+    # Get last order
+    def getLastOrder(self):
+        # If market has been activated --> get last order
+        if self.id in order.historyIntialOrder.keys():
+            lastOrderDictId = max(order.historyIntialOrder[self.id].keys())
+            lastOrder = order.historyIntialOrder[self.id][lastOrderDictId]
+        # Else --> return 0            
+        else:
+            lastOrder = 0
         
-    def plotPositionAgentMarket(agentName, market):
-        # Plot position agent at market
-        df = pd.DataFrame(transaction.MarketAgent[market.id, agentName], columns = ["id", agentName, str(agentName) + "RunningProfit"])
+        return lastOrder
+    
+    # Print last transactions
+    def printLastTransactions(self, lastTransactionId, number_transactions = 5):
+        if self.id in transaction.history.keys():
+            for t in transaction.history[self.id][-number_transactions:]:
+                if t.id > lastTransactionId:
+                    print("--> Trade {}: {} buys from {} with price {} and quantity {}".format(t.id, t.buyOrder.agent.name, t.sellOrder.agent.name, t.price, t.quantity))
+                    # last_transaction_id = x.id
+        
+    def printOrderbook(self, lastTransactionId = -1):
+        last_order = market.getLastOrder(self)
+        
+        # Print last order
+        print("Order {}: {} with price {} and quantity {}".format(last_order["id"], last_order["side"], last_order["price"], last_order["quantity"]))
+        
+        # Print last transactions
+        market.printLastTransactions(self, lastTransactionId)
+        
+        # Print orderbook
+        self.showOrderbook()  
+    
+    # Plot price over time
+    def plotPrice(self, skip_transactions = 20, first = 0, last = 999999):
+        df = pd.DataFrame(transaction.historyList[self.id], columns = ["id", "time", "price"])
+        df = df[["id", "price"]]
+        df = df[(df["id"] > first) & (df["id"] < last)]
+        df = df[df["id"] > skip_transactions]
         df = df.set_index("id")
-        df = df[agentName]
-        plt.plot(df, label = str(agentName))
+        
+        return df.plot() 
+    
+    # Plot price over time on all markets in one graph
+    def plotPriceAllMarkets(self, skip_transactions = 20, first = 0, last = 999999):
+        for m in market.markets:       
+            df = pd.DataFrame(transaction.historyList[m.id], columns = ["id", "time", "price"])
+            df = df[["id", "price"]]
+            df = df[(df["id"] > first) & (df["id"] < last)]
+            df = df[df["id"] > skip_transactions]
+            df = df.set_index("id")
+            plt.plot(df, label = "{}".format(m.id))
+        plt.legend()
+        
+        return plt.show()
+    
+    # Plot position (+ profits) all agents
+    def plotPositions(self, agents = []):
+        if len(agents) == 0:
+            agents = [a.name for a in self.agents]
+        for a in self.agents:
+            if a.name in agents:
+                df = pd.DataFrame(transaction.historyMarketAgent[self.id, a.name], columns = ["id", "runningPosition", "runningProfit"])
+                df = df.set_index("id")
+                rPosition = df["runningPosition"]
+                plt.plot(rPosition, label = "{} ({})".format(str(a.name), a.strategy), linestyle = strategies.strategiesDict[a.strategy]["linestyle"])
+                plt.plot()
         plt.legend()
 
         return plt.show()
     
-    # Plot position all agents
-    def plotPositions(self):
-        for a, s in self.agents:
-            right = pd.DataFrame(transaction.MarketAgent[self.id, a.name], columns = ["id", a.name, str(a.name) + "RunningProfit"])
-            right = right.set_index("id")
-            right = right[a.name]
-            plt.plot(right, label = str(a.name))
-            plt.legend()
-
+     # Plot profitsall agents
+    def plotProfits(self, agents = []):
+        if len(agents) == 0:
+            agents = [a.name for a in self.agents]        
+        for a in self.agents:
+            if a.name in agents:
+                df = pd.DataFrame(transaction.historyMarketAgent[self.id, a.name], columns = ["id", "runningPosition", "runningProfit"])
+                df = df.set_index("id")
+                rProfit = df["runningProfit"]
+                plt.plot(rProfit, label = "{} ({}) runningProfit".format(str(a.name), a.strategy), linestyle = strategies.strategiesDict[a.strategy]["linestyle"])
+                plt.plot()
+        plt.legend()
         return plt.show()
     
-    # Plot profits all agents
-    def plotProfits(self):
-        for a, s in self.agents:
-            right = pd.DataFrame(transaction.MarketAgent[self.id, a.name], columns = ["id", a.name, str(a.name) + "RunningProfit"])
-            right = right.set_index("id")
-            right = right[str(a.name) + "RunningProfit"]
-            plt.plot(right, label = str(a.name) + "RunningProfit")
-            plt.legend()
-
+    def plotPricePositions(self, agents = []):
+        if len(agents) == 0:
+            agents = [a.name for a in self.agents]
+        # Plot price
+        fig, ax1 = plt.subplots()
+        ax1.set_xlabel('transctionNumber')
+        ax1.set_ylabel('Price')
+        df = pd.DataFrame(transaction.historyList[self.id], columns = ["id", "time", "price"])
+        df[["id", "price"]]
+        df = df.set_index("id")
+        ax1.plot(df.index, df["price"])
+        ax1.tick_params(axis='y')
+        
+        ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
+        ax2.set_ylabel('Position')  # we already handled the x-label with ax1
+        for a in self.agents:
+            if a.name in agents:
+                df = pd.DataFrame(transaction.MarketAgent[self.id, a.name], columns = ["id", "runningPosition", "runningProfit"])
+                df = df.set_index("id")
+                ax2.plot(df.index, df["runningPosition"], linestyle = strategies.strategiesDict[a.strategy]["linestyle"])
+        ax2.tick_params(axis='y')
+        
+        fig.tight_layout()  # otherwise the right y-label is slightly clipped
         return plt.show()
+        
+    def plotOrdersTrades(self):
+        #Times of order entry
+        orderTimes = [o.datetime for o in order.history[self.id]]
+        orderTimes = pd.DataFrame(orderTimes)
+        
+        # Times of transaction
+        tradeTimes = [[t.datetime, t.price] for t in transaction.history[self.id]]
+        tradeTimes = pd.DataFrame(tradeTimes)
+        
+        # combined
+        combined = pd.merge(orderTimes, tradeTimes, on = 0, how = "left")
+        combined = combined.set_index(0)
+        
+        return combined.plot()    
     
     # Plot price, volatility, positions and profits
     def summary(self):
@@ -633,34 +829,35 @@ class market():
         
         # PLOT RUNNING POSITIONS + RUNNING PROFITS AGENTS
         for a in self.agents:
-            right = pd.DataFrame(transaction.MarketAgent[self.id, a.name], columns = ["id", a.name, str(a.name) + "RunningProfit"])
+            right = pd.DataFrame(transaction.historyMarketAgent[self.id, a.name], columns = ["id", a.name, str(a.name) + "RunningProfit"])
             right = right.set_index("id")
             right = right[a.name]
             axs[1, 0].plot(right, label = str(a.name))
         axs[1, 0].set_title("Positions")  
+        
         if len(self.agents) < 20:
             axs[1, 0].legend()
         
         for a in self.agents:
-            right = pd.DataFrame(transaction.MarketAgent[self.id, a.name], columns = ["id", a.name, str(a.name) + "RunningProfit"])
+            right = pd.DataFrame(transaction.historyMarketAgent[self.id, a.name], columns = ["id", a.name, str(a.name) + "RunningProfit"])
             right = right.set_index("id")
             right = right[str(a.name) + "RunningProfit"]
             axs[1, 1].plot(right, label = str(a.name) + "RunningProfit")
         
         axs[1, 1].set_title("Running profit")
 
-        return plt.show()
+        return plt.show()  
     
      # SHOW ORDERBOOK RAW VERSION     
-    def showOrderbook(self):
+    def showOrderbook(self, show_depth = 10):
         widthOrderbook = len("0       Bert    Buy     33      5")
         print(widthOrderbook * 2 * "*")
         
         if self.id in order.activeSellOrders.keys():
-            for sellOrder in sorted(order.activeSellOrders[self.id], key = operator.attrgetter("price"), reverse = True):
+            for sellOrder in sorted(order.activeSellOrders[self.id], key = operator.attrgetter("price"), reverse = False)[:show_depth]:
                     print(widthOrderbook * "." + " " + str(sellOrder))
         if self.id in order.activeBuyOrders.keys():
-            for buyOrder in sorted(order.activeBuyOrders[self.id], key = operator.attrgetter("price"), reverse = True):
+            for buyOrder in sorted(order.activeBuyOrders[self.id], key = operator.attrgetter("price"), reverse = True)[:show_depth]:
                     print(str(buyOrder) + " " + widthOrderbook * ".")
                     
         print(widthOrderbook * 2 * "*")        
@@ -680,4 +877,5 @@ class market():
         
         plt.hist(buyOrders, bins = 100, color = "green")
         plt.hist(sellOrders, bins = 100, color = "red")
-        plt.show()
+        
+        return plt.show()
