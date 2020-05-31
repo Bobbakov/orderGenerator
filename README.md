@@ -54,7 +54,7 @@ Using the libary is simple.
 First: install ordergenerator:
 
 ```shell script
-pip install https://github.com/bobbakov/ordergenerator/archive/master.zip
+pip install https://github.com/bobbakov/orderGenerator/archive/master.zip
 ```
 
 Secondly: Import the libary. 
