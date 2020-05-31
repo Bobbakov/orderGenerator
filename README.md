@@ -51,12 +51,16 @@ Questions such as these could be investigated using this simulator.
 ## How users can get started with the project
 Using the libary is simple. 
 
-First: Download "orderGenerator_module.py" and save it on your Python path.
+First: install ordergenerator:
+
+```shell script
+pip install https://github.com/bobbakov/orderGenerator/archive/master.zip
+```
 
 Secondly: Import the libary. 
 
 ```
-from orderGenerator_module.py import *
+from ordergenerator import *
 ``` 
 
 Step 3: Create a market:
