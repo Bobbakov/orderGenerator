@@ -42,8 +42,7 @@ class strategies():
         # Send order to market
         order(market, agentId, side, price, quantity)
 
-        ###############################################################################
-
+    ###############################################################################
     # AGENT: MARKET MAKER
     ###############################################################################
     # Agents always tries to be best bid and best offer at market. If he is not --> he improves price by 1 tick.

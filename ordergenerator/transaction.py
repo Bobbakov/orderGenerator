@@ -67,9 +67,7 @@ class transaction():
                                                                                 transaction.calculateRprofit(
                                                                                     sellOrder.agent, market)])
 
-    ###############################################################################
-    # TRANSACTION: SUPPORTING FUNCTIONS
-    ###############################################################################
+    ### METHODS
     # Display transaction
     def __str__(self):
         return "{} \t {} \t {} \t {} \t {} \t {} \t {}".format(self.id, self.datetime.time(), self.market,

@@ -25,10 +25,6 @@ class agent():
 
         agent.agents.append(self)
 
-    ###############################################################################
-    # AGENT: SUPPORTING FUNCTIONS
-    ###############################################################################
-
     # If price has been printed in market --> return last price. Else --> return mid price
     def getLastPriceOrElse(market):
         if market.id in transaction.history.keys():
