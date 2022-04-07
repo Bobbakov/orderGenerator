@@ -17,6 +17,7 @@ class cancellation():
         cancellation.history[order.market.id].append(self)
         
 def cancel_orders(orders_to_delete):
+    """Delets list of orders from market"""
     list_orders_to_delete = orders_to_delete if ( type(orders_to_delete) == list ) else [orders_to_delete]
     if len(list_orders_to_delete) > 0:
     # If there are orders_to_delete -->

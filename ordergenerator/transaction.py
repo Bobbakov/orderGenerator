@@ -41,8 +41,6 @@ class transaction():
                                                                                    sell_order.agent.position[market.id], 
                                                                                    get_realized_profit(sell_order.agent, market)])
 
-### METHODS
-# Display transaction
 '''
 def __str__(self):
     return "{} \t {} \t {} \t {} \t {} \t {} \t {}".format(self.id, 
@@ -64,6 +62,7 @@ def transaction_description(bid, offer, market, price, quantity):
 
 # Calculate realized profit agent at market
 def get_realized_profit(agent, market):
+    """Get realized profit by agent at market"""
     ask_vwap = 0
     bid_vwap = 0
     quantity_sold = 0

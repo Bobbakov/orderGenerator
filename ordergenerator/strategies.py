@@ -8,13 +8,10 @@ plt.rcParams["figure.figsize"] = (15, 15)
 import order as ordr
 import transaction as tr
 import cancellation as cx
-import agent as ag
-import strategies as stg
-import strategies_custom as stg_cust
 
-class strategies():
+class strategies_standard():
     ################# 
-    # DEFINE STRATEGIES
+    # DEFINE OUT OF THE BOX STRATEGIES
     #################
     def random_uniform(current_agent, market):
         side = random.choice(["Buy", "Sell"])
@@ -28,8 +25,8 @@ class strategies():
     # Randomly choose Buy/Sell order with price from normal distribution
     def random_normal(current_agent, market):
         side = random.choice(["Buy", "Sell"])
-        last_price = get_last_price(market)
-        std = 0.1 * last_price
+        last_price = supporting_functions.get_last_price(market)
+        std = (0.1 * last_price)
         price = np.random.normal(last_price, std)
         quantity = random.randint(market.minquantity, market.maxquantity)
 
@@ -45,7 +42,7 @@ class strategies():
         sell_probability = 1 - buy_probability
         side = np.random.choice(["Buy", "Sell"], 
                                 p = [buy_probability, sell_probability])
-        last_price = get_last_price(market)
+        last_price = supporting_functions.get_last_price(market)
         price = (last_price * np.random.lognormal(0, 0.2))
         quantity = random.randint(market.minquantity, market.maxquantity)
 
@@ -69,7 +66,7 @@ class strategies():
                 ordr.order(market, current_agent, "Buy", market.maxprice, abs(current_agent.position[market.id]))
 
         # If there are active buy orders --> improve best bid by one tick
-        (best_bid, best_bid_price) = get_best_bid(market) 
+        (best_bid, best_bid_price) = supporting_functions.get_best_bid(market) 
         if best_bid != None:
             if not best_bid.agent.name == current_agent.name:
                 ordr.order(market, current_agent, "Buy", best_bid.price + market.ticksize, quantity)
@@ -79,7 +76,7 @@ class strategies():
         else:
             ordr.order(market, current_agent, "Buy", market.minprice, quantity)
         
-        (best_offer, best_offer_price) = get_best_offer(market) 
+        (best_offer, best_offer_price) = supporting_functions.get_best_offer(market) 
         # If there are active sell orders --> improve best offer by one tick
         if best_offer != None:
             # If trader is not best offer --> improve best offer
@@ -90,171 +87,292 @@ class strategies():
         # Else --> create best bid
         else:
             ordr.order(market, current_agent, "Sell", market.maxprice, quantity)
+    
+    ###############################################################################
+    # AGENT: Add strategies to list
+    ###############################################################################
+    strategies = [random_uniform, 
+                  random_normal, 
+                  random_lognormal, 
+                  best_bid_offer]
 
-################# 
-# DEFINE SUPPORTING FUNCTIONS
-#################
-def get_best_bid(market):
-    if len(ordr.order.active_buy_orders[market.id]) > 0:
-        buy_orders = sorted(ordr.order.active_buy_orders[market.id], key = lambda x: (-1 * x.price, x.id))
-        best_bid = buy_orders[0]
-        best_bid_price = best_bid.price
-    else:
-        best_bid = None
-        # If no bids --> improving best bid by one tick should send in market.minprice
-        best_bid_price = (market.minprice - market.ticksize)
-    return (best_bid, best_bid_price)
-
-def get_next_best_bid(market):
-    next_best_bid_exists = False
-    if len(ordr.order.active_buy_orders[market.id]) > 1:
-        buy_orders = sorted(ordr.order.active_buy_orders[market.id], key = lambda x: (-1 * x.price, x.id))
-        next_best_bid = buy_orders[1]
-        next_best_bid_price = next_best_bid.price
-        next_best_bid_exists = True
-    else:
-        # If no bids --> improving best bid by one tick should send in market.minprice
-        next_best_bid_price = (market.minprice - market.ticksize)
-    return (next_best_bid_exists, next_best_bid_price)
-
-def get_next_best_offer(market):
-    next_best_offer_exists = False
-    if len(ordr.order.active_sell_orders[market.id]) > 1:
-        sell_orders = sorted(ordr.order.active_sell_orders[market.id], key = lambda x: (x.price, x.id))
-        next_best_offer = sell_orders[1]
-        next_best_offer_price = next_best_offer.price
-        next_best_offer_exists = True
-    else:
-        # If no bids --> improving best bid by one tick should send in market.minprice
-        next_best_offer_price = (market.maxprice + market.ticksize)
-    return (next_best_offer_exists, next_best_offer_price)
-
-def get_best_offer(market):
-    if len(ordr.order.active_sell_orders[market.id]) > 0:
-        sell_orders = sorted(ordr.order.active_sell_orders[market.id], key = lambda x: (x.price, x.id))
-        best_offer = sell_orders[0]
-        best_offer_price = best_offer.price
-    else:
-        best_offer = None
-        # If no offers --> improving best offer by one tick should send in market.maxprice
-        best_offer_price = (market.maxprice + market.ticksize)
-    return (best_offer, best_offer_price)
-
-def agent_has_bids_in_orderbook(current_agent, market):
-    agent_has_bids_in_orderbook = 0
-    if len(ordr.order.active_buy_orders[market.id]) > 1:
-        buy_orders_current_agent = [o for o in ordr.order.active_buy_orders[market.id] if o.agent.name == current_agent.name]
-        # If buy orders in orderbook by current_agent -->
-        if len(buy_orders_current_agent) > 0:
-            agent_has_bids_in_orderbook = 1
-    return agent_has_bids_in_orderbook
- 
-def agent_has_offers_in_orderbook(current_agent, market):
-    agent_has_offers_in_orderbook = 0
-    if len(ordr.order.active_sell_orders[market.id]) > 1:
-        sell_orders_current_agent = [o for o in ordr.order.active_sell_orders[market.id] if o.agent.name == current_agent.name]
-        # If buy orders in orderbook by current_agent -->
-        if len(sell_orders_current_agent) > 0:
-            agent_has_offers_in_orderbook = 1
-    return agent_has_offers_in_orderbook
-
-# If there has been transaction in market --> return last price
-# Else --> return midpoint price
-def get_last_price(market):
-    if len(tr.transaction.history[market.id]) > 0:
-        price = tr.transaction.history[market.id][-1].price
-    else:
-        price = (market.maxprice - market.minprice) / 2
-    return price
-
-###############################################################################
-# AGENT: ADD strategies TO ARRAY
-###############################################################################
-strategies = [strategies.random_uniform, 
-              strategies.random_normal, 
-              strategies.random_lognormal, 
-              strategies.best_bid_offer]
-
-'''
-strategies_name = ["random_uniform", "random_normal", "random_lognormal", "best_bid_offer"]
-strategies_dictionary = {}
-
-for i, x in enumerate(strategies_name):
-    if (i % 2 == 0):
-        strategies_dictionary[x] = {"strategy": strategies[i], "linestyle": "dotted"}
-    else:
-        strategies_dictionary[x] = {"strategy": strategies[i], "linestyle": "solid"}
-'''
-
-###############################################################################
-# AGENT: ARBITRAGE (BETWEEN MARKETS)
-###############################################################################
-# If price at marketB is lower than best_bid at marketA --> agents buys best_offer at MarketB and sells to best_bid at marketA.
-# The same goes the other way around.
-# Ignore for now -->
-'''
-def simpleArbitrage(current_agent, marketA, marketB):
-    # If marketA is initiated
-    if marketA.id in order.active_buy_orders.keys():
-        # If there are active buy orders
-        if not not order.active_buy_orders[marketA.id]:
-            # If marketB is initiated
-            if marketB.id in order.active_sell_orders.keys():
-                # If there are active sell orders
-                if not not order.active_sell_orders[marketB.id]:
-                    buy_ordersMarketA = sorted(order.active_buy_orders[marketA.id], key = operator.attrgetter("price"),
-                                              reverse = True)
-                    best_bidMarketA = buy_ordersMarketA[0]
-
-                    sell_ordersMarketB = sorted(order.active_sell_orders[marketB.id], key = operator.attrgetter("price"), reverse = False)
-                    best_offerMarketB = sell_ordersMarketB[0]
-
-                    if best_bidMarketA.price > best_offerMarketB.price:
-                        order(marketB, current_agent, "Buy", best_offerMarketB.price, best_offerMarketB.quantity)
-                        order(marketA, current_agent, "Sell", best_bidMarketA.price, best_bidMarketA.quantity)
-    # The other way around
-    if marketA.id in order.active_sell_orders.keys():
-        if not not order.active_sell_orders[marketA.id]:
-            if marketB.id in order.active_buy_orders.keys():
-                if not not order.active_buy_orders[marketB.id]:
-                    sell_ordersMaketA = sorted(order.active_sell_orders[marketA.id], key = operator.attrgetter("price"), reverse = False)
-                    best_offerMarketA = sell_ordersMaketA[0]
-
-                    buy_ordersMarketB = sorted(order.active_buy_orders[marketB.id], key = operator.attrgetter("price"),
-                                              reverse = True)
-                    best_bidMarketB = buy_ordersMarketB[0]
-
-                    if best_bidMarketB.price > best_offerMarketA.price:
-                        order(marketA, current_agent, "Buy", best_offerMarketA.price, best_offerMarketA.quantity)
-                        order(marketB, current_agent, "Sell", best_bidMarketB.price, best_bidMarketB.quantity)
-
-###############################################################################
-# AGENT: ONE BUY ORDER WITH STOP LOSS
-###############################################################################
-def stopLoss(current_agent, market):
-    if market.id in self.last_order.keys():
-        if (self.last_order[market.id].side == "Buy"):
-            self.stop[market.id] = self.last_order[market.id].price * (1 + stop_loss)
-
-    last_price = agent.get_last_price(market)
-
-    # If agent doesn't have position in market
-    if (not market.id in agent.position.keys()) or (agent.position[market.id] == 0):
-        # Agent buys at market (= for any price). This is +- equivalent to buying at price = last_price * 2
-        price = market.maxprice
-        # Correct for ticksize market
+    ###############################################################################
+    # AGENT: ARBITRAGE (BETWEEN MARKETS)
+    ###############################################################################
+    # If price at marketB is lower than best_bid at marketA --> agents buys best_offer at MarketB and sells to best_bid at marketA.
+    # The same goes the other way around.
+    # Ignore for now -->
+    '''
+    def simpleArbitrage(current_agent, marketA, marketB):
+        # If marketA is initiated
+        if marketA.id in order.active_buy_orders.keys():
+            # If there are active buy orders
+            if not not order.active_buy_orders[marketA.id]:
+                # If marketB is initiated
+                if marketB.id in order.active_sell_orders.keys():
+                    # If there are active sell orders
+                    if not not order.active_sell_orders[marketB.id]:
+                        buy_ordersMarketA = sorted(order.active_buy_orders[marketA.id], key = operator.attrgetter("price"),
+                                                  reverse = True)
+                        best_bidMarketA = buy_ordersMarketA[0]
+    
+                        sell_ordersMarketB = sorted(order.active_sell_orders[marketB.id], key = operator.attrgetter("price"), reverse = False)
+                        best_offerMarketB = sell_ordersMarketB[0]
+    
+                        if best_bidMarketA.price > best_offerMarketB.price:
+                            order(marketB, current_agent, "Buy", best_offerMarketB.price, best_offerMarketB.quantity)
+                            order(marketA, current_agent, "Sell", best_bidMarketA.price, best_bidMarketA.quantity)
+        # The other way around
+        if marketA.id in order.active_sell_orders.keys():
+            if not not order.active_sell_orders[marketA.id]:
+                if marketB.id in order.active_buy_orders.keys():
+                    if not not order.active_buy_orders[marketB.id]:
+                        sell_ordersMaketA = sorted(order.active_sell_orders[marketA.id], key = operator.attrgetter("price"), reverse = False)
+                        best_offerMarketA = sell_ordersMaketA[0]
+    
+                        buy_ordersMarketB = sorted(order.active_buy_orders[marketB.id], key = operator.attrgetter("price"),
+                                                  reverse = True)
+                        best_bidMarketB = buy_ordersMarketB[0]
+    
+                        if best_bidMarketB.price > best_offerMarketA.price:
+                            order(marketA, current_agent, "Buy", best_offerMarketA.price, best_offerMarketA.quantity)
+                            order(marketB, current_agent, "Sell", best_bidMarketB.price, best_bidMarketB.quantity)
+    
+    ###############################################################################
+    # AGENT: ONE BUY ORDER WITH STOP LOSS
+    ###############################################################################
+    def stopLoss(current_agent, market):
+        if market.id in self.last_order.keys():
+            if (self.last_order[market.id].side == "Buy"):
+                self.stop[market.id] = self.last_order[market.id].price * (1 + stop_loss)
+    
+        last_price = agent.get_last_price(market)
+    
+        # If agent doesn't have position in market
+        if (not market.id in agent.position.keys()) or (agent.position[market.id] == 0):
+            # Agent buys at market (= for any price). This is +- equivalent to buying at price = last_price * 2
+            price = market.maxprice
+            # Correct for ticksize market
+            quantity = random.randint(market.minquantity, market.maxquantity)
+    
+            # Send order to market
+            order(market, self, "Buy", price, quantity)
+    
+            # Initiate stop
+            if "stop_loss" in self.params.keys():
+                stop_loss = self.params["stop_loss"]
+            self.stop[market.id] = price * (1 + stop_loss)
+        else:
+            if last_price < self.stop[market.id]:
+                # Sell position at market
+                order(market, self, "Sell", market.minprice, self.position[market.id])
+        return 0
+    '''    
+    
+class strategies_custom():
+    """ This is where you can put any self-developed trading strategies"""
+    def only_best_bid_best_offer(current_agent, market):
+        """
+        This agent always want to be best bid and best offer
+        
+        Any other orders in orderbook by agent are deleted
+        """
         quantity = random.randint(market.minquantity, market.maxquantity)
-
-        # Send order to market
-        order(market, self, "Buy", price, quantity)
-
-        # Initiate stop
-        if "stop_loss" in self.params.keys():
-            stop_loss = self.params["stop_loss"]
-        self.stop[market.id] = price * (1 + stop_loss)
-    else:
-        if last_price < self.stop[market.id]:
-            # Sell position at market
-            order(market, self, "Sell", market.minprice, self.position[market.id])
-    return 0
-'''    
+        (best_bid, best_bid_price) = supporting_functions.get_best_bid(market)
+        (best_offer, best_offer_price) = supporting_functions.get_best_offer(market)
+        
+        # If there are active buy orders -->
+        if best_bid != None:
+            # If trader is best bid -->
+            if (best_bid.agent.name == current_agent.name):
+                # LOGIC GOES WRONG HERE
+                # If trader can lower price and still be best bid -->
+                (next_best_bid_exists, next_best_bid_price) = supporting_functions.get_next_best_bid(market)
+                
+                if next_best_bid_exists:
+                    if (next_best_bid_price < (best_bid_price - market.ticksize)):
+                        ordr.order(market, current_agent, "Buy", next_best_bid_price - market.ticksize, quantity)
+                        # Cancel best bid -->
+                        cx.cancellation.cancel_orders(best_bid)
+                else:
+                    if (best_bid.price != market.minprice):
+                        ordr.order(market, current_agent, "Buy", market.minprice, quantity)
+                        cx.cancellation.cancel_orders(best_bid)
+            # If there are no active bids in orderbook -->
+            else:
+                # Check if no transaction occurs by sending in best price -->
+                if best_offer_price > (best_bid_price + market.ticksize):
+                    new_best_bid = ordr.order(market, current_agent, "Buy", best_bid_price + market.ticksize, quantity)
+                    ordr.order.cancel_all_bids_agent_except(market, current_agent, new_best_bid)
+                
+                '''
+                # Else --> join best bid
+                else:
+                    new_best_bid = order(market, current_agent, "Buy", best_bid_price, quantity)        
+                    order.cancel_all_bids_agent_except(market, current_agent, new_best_bid)
+                '''
+        # If no active buy orders  -->
+        else:
+            # If no transaction occurs by sending in bid -->
+            if best_offer_price > market.minprice:
+                ordr.order(market, current_agent, "Buy", market.minprice, quantity)
+        
+        # If there are active sell orders -->
+        if best_offer != None:
+            # If trader is best offer -->
+            if (best_offer.agent.name == current_agent.name):
+                # If trader can lower price and still be best bid -->
+                (next_best_offer_exists, next_best_offer_price) = supporting_functions.get_next_best_offer(market)
+                if next_best_offer_exists:
+                    if (next_best_offer_price > (best_offer_price + market.ticksize)):
+                        ordr.order(market, current_agent, "Sell", best_offer_price + market.ticksize, quantity)
+                        # Cancel best bid -->
+                        cx.cancellation.cancel_orders(best_offer) 
+                else:
+                    if (best_offer.price != market.maxprice):
+                        ordr.order(market, current_agent, "Sell", market.maxprice, quantity)
+                        cx.cancellation.cancel_orders(best_offer)
+                pass
+            # If trader is not best offer -->
+            else:
+                # Check if no transaction occurs  -->
+                if best_bid_price < (best_offer_price - market.ticksize):
+                    new_best_offer = ordr.order(market, current_agent, "Sell", best_offer_price - market.ticksize, quantity)
+                    ordr.order.cancel_all_offers_agent_except(market, current_agent, new_best_offer)
+                
+                '''
+                # Else --> join best offer
+                else:
+                    new_best_offer = order(market, current_agent, "Sell", best_offer_price, quantity)
+                    order.cancel_all_offers_agent_except(market, current_agent, new_best_offer)
+                '''    
+        # If no active sell orders -->
+        else:
+             # If no transaction occurs by sending in offer -->
+            if (best_bid_price < market.maxprice):
+                ordr.order(market, current_agent, "Sell", market.maxprice, quantity)
+            
+    def snipe_best_bid_or_offer(current_agent, market):
+        """"
+        Agent always buys best offer (if available) and sells to best bid (if available) 
+        
+        In case both best offer and best bid are available, agent randomly buys or sells
+        """
+        quantity = random.randint(market.minquantity, market.maxquantity)
+        (best_bid, _) = supporting_functions.get_best_bid(market)
+        (best_offer, _) = supporting_functions.get_best_offer(market)
+        
+        # If no best_bid or best_offer
+        if (best_bid == None and best_offer == None):
+            pass
+        elif (best_bid != None and best_offer == None):
+            ordr.order(market, current_agent, "Sell", best_bid.price, quantity)
+        elif (best_bid == None and best_offer != None):
+            ordr.order(market, current_agent, "Buy", best_offer.price, quantity)
+        else:
+            buy_or_sell = random.choice(["Buy", "Sell"])
+            if buy_or_sell == "Buy":
+                ordr.order(market, current_agent, "Buy", best_offer.price, quantity)
+            else:
+                ordr.order(market, current_agent, "Sell", best_bid.price, quantity)
+                
+class supporting_functions():
+    """ These functions can be used in developing trading strategies"""
+    
+    def get_best_bid(market):
+        """
+        Return tuple (best_bid, best_bid_price)
+        
+        In case there is no best bid, returns (None, market.minprice - market.ticksize)
+        """
+        if len(ordr.order.active_buy_orders[market.id]) > 0:
+            buy_orders = sorted(ordr.order.active_buy_orders[market.id], key = lambda x: (-1 * x.price, x.id))
+            best_bid = buy_orders[0]
+            best_bid_price = best_bid.price
+        else:
+            best_bid = None
+            # If no bids --> improving best bid by one tick should send in market.minprice
+            best_bid_price = (market.minprice - market.ticksize)
+        return (best_bid, best_bid_price)
+    
+    def get_next_best_bid(market):
+        """
+        Return tuple (next_best_bid_exists, next_best_bid_price)
+        
+        In case there is no best bid, returns (False, market.minprice - market.ticksize)
+        """
+        next_best_bid_exists = False
+        if len(ordr.order.active_buy_orders[market.id]) > 1:
+            buy_orders = sorted(ordr.order.active_buy_orders[market.id], key = lambda x: (-1 * x.price, x.id))
+            next_best_bid = buy_orders[1]
+            next_best_bid_price = next_best_bid.price
+            next_best_bid_exists = True
+        else:
+            # If no bids --> improving best bid by one tick should send in market.minprice
+            next_best_bid_price = (market.minprice - market.ticksize)
+        return (next_best_bid_exists, next_best_bid_price)
+    
+    def get_best_offer(market):
+        """
+        Return tuple (best_offer, best_offer_price)
+        
+        In case there is no best offer, returns (None, market.maxprice + market.ticksize)
+        """
+        if len(ordr.order.active_sell_orders[market.id]) > 0:
+            sell_orders = sorted(ordr.order.active_sell_orders[market.id], key = lambda x: (x.price, x.id))
+            best_offer = sell_orders[0]
+            best_offer_price = best_offer.price
+        else:
+            best_offer = None
+            # If no offers --> improving best offer by one tick should send in market.maxprice
+            best_offer_price = (market.maxprice + market.ticksize)
+        return (best_offer, best_offer_price)
+    
+    def get_next_best_offer(market):
+        """
+        Return tuple (next_best_offer_exists, next_best_offer_price)
+        
+        In case there is no best bid, returns (False, market.maxprice + market.ticksize)
+        """
+        next_best_offer_exists = False
+        if len(ordr.order.active_sell_orders[market.id]) > 1:
+            sell_orders = sorted(ordr.order.active_sell_orders[market.id], key = lambda x: (x.price, x.id))
+            next_best_offer = sell_orders[1]
+            next_best_offer_price = next_best_offer.price
+            next_best_offer_exists = True
+        else:
+            # If no bids --> improving best bid by one tick should send in market.minprice
+            next_best_offer_price = (market.maxprice + market.ticksize)
+        return (next_best_offer_exists, next_best_offer_price)
+    
+    
+    
+    def agent_has_bids_in_orderbook(current_agent, market):
+        """ Return True if agent has bids in orderbook"""
+        agent_has_bids_in_orderbook = 0
+        if len(ordr.order.active_buy_orders[market.id]) > 0:
+            buy_orders_current_agent = [o for o in ordr.order.active_buy_orders[market.id] if o.agent.name == current_agent.name]
+            # If buy orders in orderbook by current_agent -->
+            if len(buy_orders_current_agent) > 0:
+                agent_has_bids_in_orderbook = 1
+        return agent_has_bids_in_orderbook
+     
+    def agent_has_offers_in_orderbook(current_agent, market):
+        """ Return True if agent has offers in orderbook"""
+        agent_has_offers_in_orderbook = 0
+        if len(ordr.order.active_sell_orders[market.id]) > 0:
+            sell_orders_current_agent = [o for o in ordr.order.active_sell_orders[market.id] if o.agent.name == current_agent.name]
+            # If buy orders in orderbook by current_agent -->
+            if len(sell_orders_current_agent) > 0:
+                agent_has_offers_in_orderbook = 1
+        return agent_has_offers_in_orderbook
+    
+    def get_last_price(market):
+        """"
+        If there has been transaction --> return last transaction price
+        """
+        if len(tr.transaction.history[market.id]) > 0:
+            price = tr.transaction.history[market.id][-1].price
+        else:
+            price = (market.maxprice - market.minprice) / 2
+        return price

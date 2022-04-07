@@ -174,41 +174,44 @@ class order():
                     order.active_sell_orders[market.id].append(self)
                     break
 
-### METHODS
-# Remove offer from orderbook
-def remove_offer(offer, market):
-    a = order.active_sell_orders[market.id]
-    for c, o in enumerate(a):
-        if o.id == offer.id:
-            del a[c]
-            break
-
-# Reduce quantity offer in orderbook
-def reduce_offer(offer, transaction_quantity, market):
-    a = order.active_sell_orders[market.id]
-    for c, o in enumerate(a):
-        if o.id == offer.id:
-            if a[c].quantity == transaction_quantity:
-                order.remove_offer(offer, market)
-            else:
-                a[c].quantity -= transaction_quantity
-            break
-
-# Remove bid from orderbook
-def remove_bid(bid, market):
-    a = order.active_buy_orders[market.id]
-    for c, o in enumerate(a):
-        if o.id == bid.id:
-            del a[c]
-            break
-
-# Reduce quantity bid in orderbook
-def reduce_bid(bid, transaction_quantity, market):
-    a = order.active_buy_orders[market.id]
-    for c, o in enumerate(a):
-        if o.id == bid.id:
-            if a[c].quantity == transaction_quantity:
-                order.remove_bid(bid, market)
-            else:
-                a[c].quantity -= transaction_quantity
-            break        
+class supporting_functions():
+    """ These functions are used in processing incoming orders"""
+    def remove_offer(offer, market):
+        """Remove offer from orderbook """
+        a = order.active_sell_orders[market.id]
+        for c, o in enumerate(a):
+            if o.id == offer.id:
+                del a[c]
+                break
+    
+    def reduce_offer(offer, transaction_quantity, market):
+        """Reduce quantity offer in orderbook"""
+        a = order.active_sell_orders[market.id]
+        for c, o in enumerate(a):
+            if o.id == offer.id:
+                if a[c].quantity == transaction_quantity:
+                    order.remove_offer(offer, market)
+                else:
+                    a[c].quantity -= transaction_quantity
+                break
+    
+    
+    def remove_bid(bid, market):
+        """Remove bid from orderbook"""
+        a = order.active_buy_orders[market.id]
+        for c, o in enumerate(a):
+            if o.id == bid.id:
+                del a[c]
+                break
+    
+    
+    def reduce_bid(bid, transaction_quantity, market):
+        """Reduce quantity bid in orderbook"""
+        a = order.active_buy_orders[market.id]
+        for c, o in enumerate(a):
+            if o.id == bid.id:
+                if a[c].quantity == transaction_quantity:
+                    order.remove_bid(bid, market)
+                else:
+                    a[c].quantity -= transaction_quantity
+                break   
