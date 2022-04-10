@@ -70,7 +70,7 @@ class new_order():
                             transaction.new_transaction(self, best_offer, market, transaction_price, transaction_quantity)
 
                             # Remove offer from orderbook
-                            supporting_functions.remove_offer(best_offer, market)
+                            remove_offer(best_offer, market)
 
                             # Reduce remaining quantity order
                             remaining_quantity -= transaction_quantity
@@ -83,7 +83,7 @@ class new_order():
                             transaction.new_transaction(self, best_offer, market, transaction_price, transaction_quantity)
 
                             # Remove offer from orderbook
-                            supporting_functions.remove_offer(best_offer, market)
+                            remove_offer(best_offer, market)
 
                             # Buy order is executed --> break loop
                             break
@@ -96,7 +96,7 @@ class new_order():
                             transaction.new_transaction(self, best_offer, market, transaction_price, transaction_quantity)
 
                             # Reduce quantity offer
-                            supporting_functions.reduce_offer(best_offer, transaction_quantity, market)
+                            reduce_offer(best_offer, transaction_quantity, market)
 
                             # Buy order is executed --> break loop
                             break
@@ -137,7 +137,7 @@ class new_order():
                             transaction.new_transaction(best_bid, self, market, transaction_price, transaction_quantity)
 
                             # Remove bid from orderbook
-                            supporting_functions.remove_bid(best_bid, market)
+                            remove_bid(best_bid, market)
 
                             remaining_quantity -= transaction_quantity
                         # If quantity order equals quantity best offer
@@ -148,7 +148,7 @@ class new_order():
                             transaction.new_transaction(best_bid, self, market, transaction_price, transaction_quantity)
 
                             # Remove best bid from orderbook
-                            supporting_functions.remove_bid(best_bid, market)
+                            remove_bid(best_bid, market)
 
                             # Order is executed --> break loop
                             break
@@ -161,7 +161,7 @@ class new_order():
                             transaction.new_transaction(best_bid, self, market, transaction_price, transaction_quantity)
 
                             # Reduce quantity best bid
-                            supporting_functions.reduce_bid(best_bid, transaction_quantity, market)
+                            reduce_bid(best_bid, transaction_quantity, market)
                             break
 
                     # If best bid price < best offer price  --> no transaction
@@ -179,44 +179,43 @@ class new_order():
     def __str__(self):
         return "{} \t {} \t {} \t {} \t {}".format(self.market, self.agent.name, self.side, self.price, self.quantity)
     
-class supporting_functions():
-    """ These functions are used in processing incoming orders"""
-    def remove_offer(offer, market):
-        """Remove offer from orderbook """
-        a = active_sell_orders[market.id]
-        for c, o in enumerate(a):
-            if o.id == offer.id:
-                del a[c]
-                break
-    
-    def reduce_offer(offer, transaction_quantity, market):
-        """Reduce quantity offer in orderbook"""
-        a = active_sell_orders[market.id]
-        for c, o in enumerate(a):
-            if o.id == offer.id:
-                if a[c].quantity == transaction_quantity:
-                    supporting_functions.remove_offer(offer, market)
-                else:
-                    a[c].quantity -= transaction_quantity
-                break
-    
-    
-    def remove_bid(bid, market):
-        """Remove bid from orderbook"""
-        a = active_buy_orders[market.id]
-        for c, o in enumerate(a):
-            if o.id == bid.id:
-                del a[c]
-                break
-    
-    
-    def reduce_bid(bid, transaction_quantity, market):
-        """Reduce quantity bid in orderbook"""
-        a = active_buy_orders[market.id]
-        for c, o in enumerate(a):
-            if o.id == bid.id:
-                if a[c].quantity == transaction_quantity:
-                    supporting_functions.remove_bid(bid, market)
-                else:
-                    a[c].quantity -= transaction_quantity
-                break   
+""" These functions are used in processing incoming orders"""
+def remove_offer(offer, market):
+    """Remove offer from orderbook """
+    a = active_sell_orders[market.id]
+    for c, o in enumerate(a):
+        if o.id == offer.id:
+            del a[c]
+            break
+
+def reduce_offer(offer, transaction_quantity, market):
+    """Reduce quantity offer in orderbook"""
+    a = active_sell_orders[market.id]
+    for c, o in enumerate(a):
+        if o.id == offer.id:
+            if a[c].quantity == transaction_quantity:
+                remove_offer(offer, market)
+            else:
+                a[c].quantity -= transaction_quantity
+            break
+
+
+def remove_bid(bid, market):
+    """Remove bid from orderbook"""
+    a = active_buy_orders[market.id]
+    for c, o in enumerate(a):
+        if o.id == bid.id:
+            del a[c]
+            break
+
+
+def reduce_bid(bid, transaction_quantity, market):
+    """Reduce quantity bid in orderbook"""
+    a = active_buy_orders[market.id]
+    for c, o in enumerate(a):
+        if o.id == bid.id:
+            if a[c].quantity == transaction_quantity:
+                remove_bid(bid, market)
+            else:
+                a[c].quantity -= transaction_quantity
+            break   

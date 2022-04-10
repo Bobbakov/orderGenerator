@@ -184,7 +184,7 @@ class orderbook_functions():
         orderbook_functions.print_last_transactions(market, last_transaction_id)
 
         # Print orderbook
-        orderbook_functions.show_orderbook_orders_aggregated(market)    
+        orderbook_functions.show_orderbook(market)    
     
     def show_orders_agent(market, current_agent, depth_orderbook = 20):        
         min_level_sell_side = min([o.price for o in order.active_sell_orders[market.id]]) if (len(order.active_sell_orders[market.id]) > 0) else market.maxprice
@@ -228,78 +228,21 @@ class orderbook_functions():
         df_orderbook = pd.concat([df_sell, df_buy])
         df_orderbook.plot.barh(x="price", stacked=True, figsize=(10, 10))
         plt.gca().invert_yaxis()    
-class template_markets():
-    ### TEMPLATE MARKETS
-    # Initiate a healthy or normal market
-    '''  
-    def healthy(self):
-        a1 = ag.agent(random_lognormal, buy_probability = 0.50)
-        a2 = ag.agent("best_bid_offer")
-        a3 = ag.agent("random_lognormal")
-        a4 = ag.agent("best_bid_offer")
-        a5 = ag.agent("best_bid_offer")
-        agents = [a1, a2, a3, a4, a5]
-        self.add_agents(agents)
-    '''
-    # Initiate a healthy or normal market
-    def test(market):
-        a1 = agent.create_agent(stg.template_strategies.strategies[2], buy_probability = 0.50)
-        a2 = agent.create_agent(stg.template_strategies.strategies[3])
-        a3 = agent.create_agent(stg.template_strategies.strategies[2])
-        a4 = agent.create_agent(stg.template_strategies.strategies[3])
-        a5 = agent.create_agent(stg.template_strategies.strategies[3])
-        agents = [a1, a2, a3, a4, a5]
-        market.add_agents(agents)
-    
-    '''         
-    def test2(self):
-        a1 = ag.agent(stg.strategies.random_lognormal, buy_probability = 0.50)
-        a2 = ag.agent(stg_cust.only_best_bid_best_offer)
-        agents = [a2, a1]
-        self.add_agents(agents)
-    
-    # Initiate a stressed market (= high volatility)
-    def stressed(self):
-        a1 = ag.agent("random_lognormal")
-        a2 = ag.agent("random_lognormal")
-        a3 = ag.agent("random_lognormal")
-        a4 = ag.agent("random_lognormal")
-        a5 = ag.agent("random_lognormal")
-        agents = [a1, a2, a3, a4, a5]
-        self.add_agents(agents)
-
-    # Initiate a trending (up) market
-    def trend_up(self):
-        a1 = ag.agent("random_lognormal", buy_probability = 0.55)
-        a2 = ag.agent("best_bid_offer")
-        a3 = ag.agent("random_lognormal")
-        a4 = ag.agent("best_bid_offer")
-        a5 = ag.agent("best_bid_offer")
-        agents = [a1, a2, a3, a4, a5]
-        self.add_agents(agents)
-
-    # Initiate a trending (down) market
-    def trend_down(self):
-        a1 = ag.agent("random_lognormal", buy_probability = 0.45)
-        a2 = ag.agent("best_bid_offer")
-        a3 = ag.agent("random_lognormal")
-        a4 = ag.agent("best_bid_offer")
-        a5 = ag.agent("best_bid_offer")
-        agents = [a1, a2, a3, a4, a5]
-        self.add_agents(agents)    
-    '''    
 class show_results():
     ### PLOTTING
     # Plot price over time
     def plot_price(market, skip_first_transactions = 0, skip_last_transactions_after = 99999):
-        df = pd.DataFrame(transaction.history_list[market.id], columns = ["id", 
-                                                                           "time", 
-                                                                           "price"])
-        df = df[["id", "price"]]
-        df = df[(df["id"] > skip_first_transactions) & (df["id"] < skip_last_transactions_after)]
-        df = df.set_index("id")
-
-        return df.plot()
+        if len(transaction.history_list[market.id]) > 0:
+            df = pd.DataFrame(transaction.history_list[market.id], columns = ["id", 
+                                                                               "time", 
+                                                                               "price"])
+            df = df[["id", "price"]]
+            df = df[(df["id"] > skip_first_transactions) & (df["id"] < skip_last_transactions_after)]
+            df = df.set_index("id")
+    
+            return df.plot()
+        else:
+            print("No transactions to show")
 
     # Plot position all agents
     def plot_positions(market, agents = []):
@@ -386,11 +329,95 @@ class show_results():
         axs[1, 1].set_title("Running profit")
 
         return plt.show()
+class template_markets():
+    ### TEMPLATE MARKETS
+    # Initiate a healthy or normal market
+    '''  
+    def healthy(self):
+        a1 = ag.agent(random_lognormal, buy_probability = 0.50)
+        a2 = ag.agent("best_bid_offer")
+        a3 = ag.agent("random_lognormal")
+        a4 = ag.agent("best_bid_offer")
+        a5 = ag.agent("best_bid_offer")
+        agents = [a1, a2, a3, a4, a5]
+        self.add_agents(agents)
+    '''
+    # Initiate a healthy or normal market
+    def test(market):
+        a1 = agent.create_agent(stg.template_strategies.strategies[2], buy_probability = 0.50)
+        a2 = agent.create_agent(stg.template_strategies.strategies[3])
+        a3 = agent.create_agent(stg.template_strategies.strategies[2])
+        a4 = agent.create_agent(stg.template_strategies.strategies[3])
+        a5 = agent.create_agent(stg.template_strategies.strategies[3])
+        agents = [a1, a2, a3, a4, a5]
+        market.add_agents(agents)
+        
+    def test_with_market_maker(market):
+        a1 = agent.create_agent(stg.template_strategies.strategies[2])
+        a2 = agent.create_agent(stg.custom_strategies.only_best_bid_best_offer)
+        a3 = agent.create_agent(stg.template_strategies.strategies[2])
+        a4 = agent.create_agent(stg.custom_strategies.orders_max_n_ticks_away_from_midpoint_price)
+        
+        agents = [a1, a2, a3, a4]
+        market.add_agents(agents)
+        
+    def test_with_two_market_makers(market):
+        a1 = agent.create_agent(stg.custom_strategies.only_best_bid_best_offer)
+        a2 = agent.create_agent(stg.custom_strategies.only_best_bid_best_offer)
+        agents = [a1, a2]
+        market.add_agents(agents)   
+        
+    def test_with_dynamic_market_maker(market):
+        a1 = agent.create_agent(stg.template_strategies.strategies[2])
+        a2 = agent.create_agent(stg.custom_strategies.orders_max_n_ticks_away_from_midpoint_price)
+        a3 = agent.create_agent(stg.template_strategies.strategies[2])
+        agents = [a1, a2, a3]
+        market.add_agents(agents)
+        
+    '''         
+    def test2(self):
+        a1 = ag.agent(stg.strategies.random_lognormal, buy_probability = 0.50)
+        a2 = ag.agent(stg_cust.only_best_bid_best_offer)
+        agents = [a2, a1]
+        self.add_agents(agents)
     
+    # Initiate a stressed market (= high volatility)
+    def stressed(self):
+        a1 = ag.agent("random_lognormal")
+        a2 = ag.agent("random_lognormal")
+        a3 = ag.agent("random_lognormal")
+        a4 = ag.agent("random_lognormal")
+        a5 = ag.agent("random_lognormal")
+        agents = [a1, a2, a3, a4, a5]
+        self.add_agents(agents)
+
+    # Initiate a trending (up) market
+    def trend_up(self):
+        a1 = ag.agent("random_lognormal", buy_probability = 0.55)
+        a2 = ag.agent("best_bid_offer")
+        a3 = ag.agent("random_lognormal")
+        a4 = ag.agent("best_bid_offer")
+        a5 = ag.agent("best_bid_offer")
+        agents = [a1, a2, a3, a4, a5]
+        self.add_agents(agents)
+
+    # Initiate a trending (down) market
+    def trend_down(self):
+        a1 = ag.agent("random_lognormal", buy_probability = 0.45)
+        a2 = ag.agent("best_bid_offer")
+        a3 = ag.agent("random_lognormal")
+        a4 = ag.agent("best_bid_offer")
+        a5 = ag.agent("best_bid_offer")
+        agents = [a1, a2, a3, a4, a5]
+        self.add_agents(agents)    
+    '''        
 def test_function():
     """If run function --> run test"""
     A = market()
-    template_markets.test(A)
-    A.order_generator(n=4)
-    # show_results.plot_price(A)
+    template_markets.test_with_dynamic_market_maker(A)
+    A.order_generator(n=100)
+    show_results.plot_price(A)
+    show_results.plot_positions(A)
     show_results.plot_profits(A)
+    orderbook_functions.show_orders_agent(A, A.agents[1])
+    # show_results.plot_profits(A)
