@@ -8,12 +8,11 @@ from matplotlib import pyplot as plt
 plt.rcParams["figure.figsize"] = (10, 10)
 
 # Import modules -->
-import order as ordr
-import transaction as tr
-import cancellation as cx
-import agent as ag
+import order
+import transaction
+import cancellation
+import agent
 import strategies as stg
-import strategies_custom as stg_cust
 
 class market():
     counter = itertools.count()
@@ -30,14 +29,14 @@ class market():
         self.maxquantity = maxquantity
         
         # Initialize values -->
-        ordr.order.history[self.id] = []
-        ordr.order.history_order[self.id] = {}
-        ordr.order.active_buy_orders[self.id] = []
-        ordr.order.active_sell_orders[self.id] = []
-        tr.transaction.history[self.id] = []
-        tr.transaction.history_list[self.id] = []
+        order.history[self.id] = []
+        order.history_order[self.id] = {}
+        order.active_buy_orders[self.id] = []
+        order.active_sell_orders[self.id] = []
+        transaction.history[self.id] = []
+        transaction.history_list[self.id] = []
         
-        cx.cancellation.history[self.id] = []
+        cancellation.history[self.id] = []
         
         market.markets.append(self)
 
@@ -56,16 +55,17 @@ class market():
             for current_agent in self.agents:
                 # Take strategy agent --> execute strategy
                 # Keep track of last values printed
-                last_transaction_id = tr.transaction.history[self.id][-1].id  if (len(tr.transaction.history[self.id]) > 0) else -1
-                last_order_id = max(ordr.order.history_order[self.id].keys()) if (len(ordr.order.history_order[self.id]) > 0) else -1
-                last_order_cancelled_id = cx.cancellation.history[self.id][-1].id if (len(cx.cancellation.history[self.id]) > 0) else -1
+                last_transaction_id = transaction.history[self.id][-1].id  if (len(transaction.history[self.id]) > 0) else -1
+                last_order_id = max(order.history_order[self.id].keys()) if (len(order.history_order[self.id]) > 0) else -1
+                last_order_cancelled_id = cancellation.history[self.id][-1].id if (len(cancellation.history[self.id]) > 0) else -1
                 
                 # Execute strategy
                 current_agent.strategy(current_agent, self)
                 
                 # If print_orderbook == True --> show results
                 if print_orderbook:
-                    display_functions.print_orderbook(self, last_transaction_id, last_order_id, last_order_cancelled_id)
+                    print("Run {}".format(o))
+                    orderbook_functions.print_orderbook(self, last_transaction_id, last_order_id, last_order_cancelled_id)
 
                     # Slow down printing orderbook
                     time.sleep(float(sleeptime))
@@ -84,27 +84,26 @@ class market():
             a.quantity_bought[self.id] = 0
             a.value_sold[self.id] = 0
             a.quantity_sold[self.id] = 0                    
-            tr.transaction.history_market_agent[self.id, a.name] = []    
-    
-class display_functions(): 
+            transaction.history_market_agent[self.id, a.name] = []               
+class orderbook_functions(): 
     # Empty active orders
     def clear(market):
-        ordr.order.active_sell_orders[market.id] = []
-        ordr.order.active_buy_orders[market.id] = []
+        order.active_sell_orders[market.id] = []
+        order.active_buy_orders[market.id] = []
         
     # Get last order
     def get_last_order(market):
         # If market has been activated --> get last order
-        if len(ordr.order.history_order[market.id]) > 0:
-            last_order_id = max(ordr.order.history_order[market.id].keys())
-            last_order = ordr.order.history_order[market.id][last_order_id]
+        if len(order.history_order[market.id]) > 0:
+            last_order_id = max(order.history_order[market.id].keys())
+            last_order = order.history_order[market.id][last_order_id]
         # Else --> return 0
         else:
             last_order = 0     
         return last_order
     
     def print_last_cancellations(market, last_order_cancelled_id):
-        for c in cx.cancellation.history[market.id]:
+        for c in cancellation.history[market.id]:
             if c.id > last_order_cancelled_id:
                  print("Cancellation: {} by agent {} with price {} (quantity = {})".format(c.cancelled_order.side, 
                                                                                            c.cancelled_order.agent.name, 
@@ -113,7 +112,7 @@ class display_functions():
     
     # Print last transactions
     def print_last_orders(market, last_order_id):
-        for counter, o in ordr.order.history_order[market.id].items():
+        for counter, o in order.history_order[market.id].items():
             # Only print new orders -->
             if o["id"] > last_order_id:
                 print("New order: {} by agent {} with price {} (quantity = {})".format(o["side"], 
@@ -123,7 +122,7 @@ class display_functions():
     
     # Print last transactions
     def print_last_transactions(market, last_transaction_id, max_number_transactions = 5):
-        for t in tr.transaction.history[market.id][-max_number_transactions:]:
+        for t in transaction.history[market.id][-max_number_transactions:]:
             # Only print new transactions -->
             if t.id > last_transaction_id:
                 print("--> Trade at price {} (quantity = {}) {} from {}".format(t.price, 
@@ -136,9 +135,9 @@ class display_functions():
         width_orderbook = 33
         print(width_orderbook * 2 * "*")
 
-        for sell_order in sorted(ordr.order.active_sell_orders[market.id], key = lambda x: (x.price, x.id), reverse=True)[(-1 * depth):]:
+        for sell_order in sorted(order.active_sell_orders[market.id], key = lambda x: (x.price, x.id), reverse=True)[(-1 * depth):]:
             print(width_orderbook * "." + " " + str(sell_order))
-        for buy_order in sorted(ordr.order.active_buy_orders[market.id], key = lambda x: (-1 * x.price, x.id))[:depth]:
+        for buy_order in sorted(order.active_buy_orders[market.id], key = lambda x: (-1 * x.price, x.id))[:depth]:
             print(str(buy_order) + " " + width_orderbook * ".")
 
         print(width_orderbook * 2 * "*")
@@ -148,7 +147,7 @@ class display_functions():
         # Aggregate sell orders
         print("******************************************")
         sell_orders_aggregated = {}
-        for o in sorted(ordr.order.active_sell_orders[market.id], key = lambda x: (x.price, x.id)):
+        for o in sorted(order.active_sell_orders[market.id], key = lambda x: (x.price, x.id)):
             if o.price not in sell_orders_aggregated.keys():
                 sell_orders_aggregated[o.price] = {"quantity": o.quantity, 
                                                    "number_orders": 1}
@@ -160,7 +159,7 @@ class display_functions():
             print(f"xxxxxxxxxxxxxxxxx\t{level}\t{sell_orders_aggregated[level]['quantity'] }\t{sell_orders_aggregated[level]['number_orders'] }")            
         # Aggregate buy orders
         buy_orders_aggregated = {}
-        for o in sorted(ordr.order.active_buy_orders[market.id], key = lambda x: (-1 * x.price, x.id)):
+        for o in sorted(order.active_buy_orders[market.id], key = lambda x: (-1 * x.price, x.id)):
             if o.price not in buy_orders_aggregated.keys():
                 buy_orders_aggregated[o.price] = {"quantity": o.quantity, 
                                                   "number_orders": 1}
@@ -176,20 +175,20 @@ class display_functions():
    
     def print_orderbook(market, last_transaction_id = -1, last_order_id = -1, last_order_cancelled_id = -1):        
         # Print last cancellations
-        display_functions.print_last_cancellations(market, last_order_cancelled_id)
+        orderbook_functions.print_last_cancellations(market, last_order_cancelled_id)
         
         # Print last order send in
-        display_functions.print_last_orders(market, last_order_id)
+        orderbook_functions.print_last_orders(market, last_order_id)
 
         # Print last transactions
-        display_functions.print_last_transactions(market, last_transaction_id)
+        orderbook_functions.print_last_transactions(market, last_transaction_id)
 
         # Print orderbook
-        display_functions.show_orderbook_orders_aggregated(market)    
+        orderbook_functions.show_orderbook_orders_aggregated(market)    
     
     def show_orders_agent(market, current_agent, depth_orderbook = 20):        
-        min_level_sell_side = min([o.price for o in ordr.order.active_sell_orders[market.id]]) if (len(ordr.order.active_sell_orders[market.id]) > 0) else market.maxprice
-        max_level_buy_side = (max([o.price for o in ordr.order.active_buy_orders[market.id]]) + market.ticksize) if (len(ordr.order.active_buy_orders[market.id]) > 0) else market.minprice
+        min_level_sell_side = min([o.price for o in order.active_sell_orders[market.id]]) if (len(order.active_sell_orders[market.id]) > 0) else market.maxprice
+        max_level_buy_side = (max([o.price for o in order.active_buy_orders[market.id]]) + market.ticksize) if (len(order.active_buy_orders[market.id]) > 0) else market.minprice
         levels_sell_orders_orderbook = np.arange(min_level_sell_side, (market.maxprice + market.ticksize), market.ticksize).round(2)
         levels_buy_orders_orderbook = np.arange(market.minprice, max_level_buy_side, market.ticksize).round(2)
 
@@ -197,7 +196,7 @@ class display_functions():
         sell_orders_current_agent = dict.fromkeys(levels_sell_orders_orderbook, 0)
         sell_orders_other_agents = dict.fromkeys(levels_sell_orders_orderbook, 0)
 
-        for o in ordr.order.active_sell_orders[market.id]:
+        for o in order.active_sell_orders[market.id]:
             if o.agent.name == current_agent.name:
                 sell_orders_current_agent[o.price] += o.quantity
             else:
@@ -206,7 +205,7 @@ class display_functions():
         buy_orders_current_agent = dict.fromkeys(levels_buy_orders_orderbook, 0)
         buy_orders_other_agents = dict.fromkeys(levels_buy_orders_orderbook, 0)
 
-        for o in ordr.order.active_buy_orders[market.id]:
+        for o in order.active_buy_orders[market.id]:
             if o.agent.name == current_agent.name:
                 buy_orders_current_agent[o.price] += o.quantity
             else:
@@ -223,12 +222,12 @@ class display_functions():
                                 .sort_values(by="price", ascending=False)[-depth_orderbook:])
         df_buy = (df_buy_orders[(df_buy_orders["quantity_others"] > 0 ) | (df_buy_orders["quantity_agent"] > 0)]
                                 .sort_values(by="price", ascending=False)[:depth_orderbook])
+        
         # Turn buy quantity negative for visualization purposes
         df_buy[["quantity_others", "quantity_agent"]] = (df_buy[["quantity_others", "quantity_agent"]] * -1)
         df_orderbook = pd.concat([df_sell, df_buy])
         df_orderbook.plot.barh(x="price", stacked=True, figsize=(10, 10))
-        plt.gca().invert_yaxis()
-    
+        plt.gca().invert_yaxis()    
 class template_markets():
     ### TEMPLATE MARKETS
     # Initiate a healthy or normal market
@@ -244,14 +243,15 @@ class template_markets():
     '''
     # Initiate a healthy or normal market
     def test(market):
-        a1 = ag.agent(stg.strategies[2], buy_probability = 0.50)
-        a2 = ag.agent(stg.strategies[3])
-        a3 = ag.agent(stg.strategies[2])
-        a4 = ag.agent(stg.strategies[3])
-        a5 = ag.agent(stg.strategies[3])
+        a1 = agent.create_agent(stg.template_strategies.strategies[2], buy_probability = 0.50)
+        a2 = agent.create_agent(stg.template_strategies.strategies[3])
+        a3 = agent.create_agent(stg.template_strategies.strategies[2])
+        a4 = agent.create_agent(stg.template_strategies.strategies[3])
+        a5 = agent.create_agent(stg.template_strategies.strategies[3])
         agents = [a1, a2, a3, a4, a5]
         market.add_agents(agents)
-        
+    
+    '''         
     def test2(self):
         a1 = ag.agent(stg.strategies.random_lognormal, buy_probability = 0.50)
         a2 = ag.agent(stg_cust.only_best_bid_best_offer)
@@ -287,12 +287,12 @@ class template_markets():
         a5 = ag.agent("best_bid_offer")
         agents = [a1, a2, a3, a4, a5]
         self.add_agents(agents)    
-
+    '''    
 class show_results():
     ### PLOTTING
     # Plot price over time
     def plot_price(market, skip_first_transactions = 0, skip_last_transactions_after = 99999):
-        df = pd.DataFrame(tr.transaction.history_list[market.id], columns = ["id", 
+        df = pd.DataFrame(transaction.history_list[market.id], columns = ["id", 
                                                                            "time", 
                                                                            "price"])
         df = df[["id", "price"]]
@@ -301,33 +301,39 @@ class show_results():
 
         return df.plot()
 
-    # Plot position (+ profits) all agents
+    # Plot position all agents
     def plot_positions(market, agents = []):
         if len(agents) == 0:
             agents = [a.name for a in market.agents]
         for a in market.agents:
             if a.name in agents:
-                df = pd.DataFrame(tr.transaction.history_market_agent[market.id, a.name], columns = ["id", 
+                # Get all transactions done -->
+                df_transactions = pd.DataFrame(np.arange(0, (transaction.history[market.id][-1].id + 1), 1), columns=["transaction_id"])
+                df_current_agent = pd.DataFrame(transaction.history_market_agent[market.id, a.name], columns = ["transaction_id", 
                                                                                                    "running_position", 
                                                                                                    "running_profit"])
-                df = df.set_index("id")
-                df_running_position = df["running_position"]
+                df_transactions = df_transactions.merge(df_current_agent, on="transaction_id", how="left").ffill().fillna(0)
+                df_transactions = df_transactions.set_index("transaction_id")
+                df_running_position = df_transactions["running_position"]
                 plt.plot(df_running_position, label = "{} ({})".format(str(a.name), str(a.strategy)))
                 plt.plot()
         plt.legend()
         return plt.show()
 
-    # Plot profitsall agents
+    # Plot profits all agents
     def plot_profits(market, agents = []):
         if len(agents) == 0:
             agents = [a.name for a in market.agents]
         for a in market.agents:
             if a.name in agents:
-                df = pd.DataFrame(tr.transaction.history_market_agent[market.id, a.name], columns = ["id", 
-                                                                                       "running_position", 
-                                                                                       "running_profit"])
-                df = df.set_index("id")
-                df_running_profit = df["running_profit"]
+                # Get all transactions done -->
+                df_transactions = pd.DataFrame(np.arange(0, (transaction.history[market.id][-1].id + 1), 1), columns=["transaction_id"])
+                df_current_agent = pd.DataFrame(transaction.history_market_agent[market.id, a.name], columns = ["transaction_id", 
+                                                                                                   "running_position", 
+                                                                                                   "running_profit"])
+                df_transactions = df_transactions.merge(df_current_agent, on="transaction_id", how="left").ffill().fillna(0)
+                df_transactions = df_transactions.set_index("transaction_id")
+                df_running_profit = df_transactions["running_profit"]
                 plt.plot(df_running_profit, label = "{} ({})".format(str(a.name), str(a.strategy)))
                 plt.plot()
         plt.legend()
@@ -335,7 +341,7 @@ class show_results():
     
 
     def summary(market):
-        df = pd.DataFrame(tr.transaction.history_list[market.id], columns = ["id", 
+        df = pd.DataFrame(transaction.history_list[market.id], columns = ["id", 
                                                                              "time", 
                                                                              "price"])
         df["volatility"] = df["price"].rolling(7).std()
@@ -359,7 +365,7 @@ class show_results():
 
         # PLOT RUNNING POSITIONS + RUNNING PROFITS AGENTS
         for a in market.agents:
-            right = pd.DataFrame(tr.transaction.history_market_agent[market.id, a.name], columns = ["id", 
+            right = pd.DataFrame(transaction.history_market_agent[market.id, a.name], columns = ["id", 
                                                                                                     a.name, 
                                                                                                     str(a.name) + "running_profit"])
             right = right.set_index("id")
@@ -371,7 +377,7 @@ class show_results():
             axs[1, 0].legend()
 
         for a in market.agents:
-            right = pd.DataFrame(tr.transaction.history_market_agent[market.id, a.name],
+            right = pd.DataFrame(transaction.history_market_agent[market.id, a.name],
                                  columns = ["id", a.name, str(a.name) + "running_profit"])
             right = right.set_index("id")
             right = right[str(a.name) + "running_profit"]
@@ -380,3 +386,11 @@ class show_results():
         axs[1, 1].set_title("Running profit")
 
         return plt.show()
+    
+def test_function():
+    """If run function --> run test"""
+    A = market()
+    template_markets.test(A)
+    A.order_generator(n=4)
+    # show_results.plot_price(A)
+    show_results.plot_profits(A)

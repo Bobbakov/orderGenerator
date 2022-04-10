@@ -1,15 +1,16 @@
 # Import libraries -->
 import itertools
 
-class agent():
-    counter = itertools.count()
-    agents = []
+# Initialize variables -->
+counter = itertools.count()
+agents = []
 
+class create_agent():
     # Initialize agent
     def __init__(self, strategy, **params):
-        self.name = next(agent.counter)
+        self.name = next(counter)
         
-        # Strategy can be picked from strategies.py or strategies_custum.py
+        # Strategy can be picked from strategies.py
         self.strategy = strategy
         self.params = params
 
@@ -22,4 +23,4 @@ class agent():
         self.quantity_sold = {}
         self.stop = {}
             
-        agent.agents.append(self)            
+        agents.append(self)            
