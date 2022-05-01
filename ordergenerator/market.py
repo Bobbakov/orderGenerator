@@ -5,7 +5,7 @@ import numpy as np
 import time
 import pandas as pd
 from matplotlib import pyplot as plt
-plt.rcParams["figure.figsize"] = (10, 10)
+# plt.rcParams["figure.figsize"] = (10, 10)
 
 # Import modules -->
 import order
@@ -44,8 +44,8 @@ class market():
         self.agents = []
 
         # Make sure simulations start from same feed --> that way they can be easily compared
-        random.seed(100)
-        np.random.seed(100)
+        # random.seed(100)
+        # np.random.seed(100)
 
     # Start agents sending in orders to market(s)
     def order_generator(self, n = 100, print_orderbook = True, sleeptime = 0.0):
@@ -68,7 +68,7 @@ class market():
                     orderbook_functions.print_orderbook(self, last_transaction_id, last_order_id, last_order_cancelled_id)
 
                     # Slow down printing orderbook
-                    time.sleep(float(sleeptime))
+                    time.sleep(float(sleeptime))            
     
     def __str__(self):
         return "{}".format(self.id)
@@ -84,7 +84,8 @@ class market():
             a.quantity_bought[self.id] = 0
             a.value_sold[self.id] = 0
             a.quantity_sold[self.id] = 0                    
-            transaction.history_market_agent[self.id, a.name] = []               
+            transaction.history_market_agent[self.id, a.name] = []    
+            
 class orderbook_functions(): 
     # Empty active orders
     def clear(market):
@@ -228,6 +229,7 @@ class orderbook_functions():
         df_orderbook = pd.concat([df_sell, df_buy])
         df_orderbook.plot.barh(x="price", stacked=True, figsize=(10, 10))
         plt.gca().invert_yaxis()    
+        
 class show_results():
     ### PLOTTING
     # Plot price over time
@@ -285,8 +287,8 @@ class show_results():
 
     def summary(market):
         df = pd.DataFrame(transaction.history_list[market.id], columns = ["id", 
-                                                                             "time", 
-                                                                             "price"])
+                                                                        "time", 
+                                                                        "price"])
         df["volatility"] = df["price"].rolling(7).std()
         df["volatility_trend"] = df["volatility"].rolling(100).mean()
         df = df[["id", "price", "volatility", "volatility_trend"]]
@@ -329,6 +331,7 @@ class show_results():
         axs[1, 1].set_title("Running profit")
 
         return plt.show()
+    
 class template_markets():
     ### TEMPLATE MARKETS
     # Initiate a healthy or normal market
@@ -421,3 +424,62 @@ def test_function():
     show_results.plot_profits(A)
     orderbook_functions.show_orders_agent(A, A.agents[1])
     # show_results.plot_profits(A)
+    
+# Start agents sending in orders to market(s)
+def order_generator_multiple_episodes(n_episodes = 1000, n_iterations_per_episode = 100):
+    # Let simulations start from same seed -->
+    random.seed(100)
+    np.random.seed(100)
+    
+    # initiate agents -->
+    a1 = agent.create_agent(stg.template_strategies.strategies[2])
+    a2 = agent.create_agent(stg.custom_strategies.orders_max_n_ticks_away_from_midpoint_price)
+    a3 = agent.create_agent(stg.template_strategies.strategies[2])
+    add_a1= agent.create_agent(stg.custom_strategies.snipe_best_bid_or_offer)
+    # Including and excluding additional agents -->
+    agents_A = [a1, a2, a3]
+    agents_B = [a1, a2, a3, add_a1]
+    
+    episodes_output = []
+    # For each episode --> create markets from scratch
+    for e in range(n_episodes):
+        A = market()
+        A.add_agents(agents_A)
+        B = market()
+        B.add_agents(agents_B)
+    
+        # For each iteration in an episode -->
+        for i in range(int(n_iterations_per_episode)):
+            # For each agent -->
+            for current_agent in A.agents:
+                # Execute strategy -->
+                current_agent.strategy(current_agent, A)
+            for current_agent in B.agents:
+                current_agent.strategy(current_agent, B)
+        
+        
+        # At end of episode --> print std
+        df_A = pd.DataFrame(transaction.history_list[A.id], columns = ["id", 
+                                                                       "time", 
+                                                                       "price"])
+        episode_tradecount_A = df_A["price"].count()
+        episode_volatility_A = df_A["price"].std()
+        
+        episodes_output.append([e, "A", episode_tradecount_A, episode_volatility_A])
+        
+        df_B = pd.DataFrame(transaction.history_list[B.id], columns = ["id", 
+                                                                       "time", 
+                                                                       "price"])
+        episode_tradecount_B = df_B["price"].count()
+        episode_volatility_B = df_B["price"].std()
+        
+        episodes_output.append([e, "B", episode_tradecount_B, episode_volatility_B])
+        # print("Episode {}: tradecount: {}, vola: {}".format(e, episode_tradecount, episode_volatility))
+    
+    df_episodes = pd.DataFrame(episodes_output, columns = ["episode", 
+                                                           "market",
+                                                           "tradecount", 
+                                                            "volatility"])
+    return df_episodes
+    # sns.histplot(df_episodes, x="volatility", hue="market")
+        

@@ -227,10 +227,10 @@ class custom_strategies():
         offer_target_price = (midpoint_price + (n_ticks *market.ticksize))
         
         # Get bids agents -->
-        bids_agent = bids_agent_in_orderbook(current_agent, market)
+        bids_agent = get_bids_agent_in_orderbook(current_agent, market)
         
         # Get offers agent
-        offers_agents = offers_agent_in_orderbook(current_agent, market)
+        offers_agents = get_offers_agent_in_orderbook(current_agent, market)
         
         bids_to_delete = [o for o in bids_agent if o.price < bid_target_price]
         cancellation.cancel_orders(bids_to_delete)
@@ -369,7 +369,7 @@ def agent_has_offers_in_orderbook(current_agent, market):
             agent_has_offers_in_orderbook = 1
     return agent_has_offers_in_orderbook
 
-def bids_agent_in_orderbook(current_agent, market):
+def get_bids_agent_in_orderbook(current_agent, market):
     """ Return list bids agent in orderbook"""
     if len(order.active_buy_orders[market.id]) > 0:
         buy_orders_current_agent = [o for o in order.active_buy_orders[market.id] if o.agent.name == current_agent.name]
@@ -377,7 +377,7 @@ def bids_agent_in_orderbook(current_agent, market):
         buy_orders_current_agent = []
     return buy_orders_current_agent
 
-def offers_agent_in_orderbook(current_agent, market):
+def get_offers_agent_in_orderbook(current_agent, market):
     """ Return list offers agent in orderbook"""
     if len(order.active_sell_orders[market.id]) > 0:
         sell_orders_current_agent = [o for o in order.active_sell_orders[market.id] if o.agent.name == current_agent.name]
